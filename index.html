@@ -31,7 +31,7 @@
                 delete: '\u{1F5D1}\uFE0F', chevron_left: '\u25C0\uFE0F', chevron_right: '\u25B6\uFE0F',
                 check_circle: '\u2705', check: '\u2705', receipt_long: '\u{1F9FE}',
                 event: '\u{1F4C6}', backup: '\u{1F5C4}\uFE0F', autorenew: '\u{1F504}',
-                auto_awesome: '\u2728', diamond: '\u{1F48E}', star: '\u2B50'
+                auto_awesome: '\u2728', diamond: '\u{1F48E}', star: '\u2B50', swap_horiz: '\u2194\uFE0F'
             };
 
             const apply = (root = document) => {
@@ -151,15 +151,6 @@
         }
         
         /* 存钱罐升级动画样式 */
-        #piggyBank {
-            animation: float 3s ease-in-out infinite;
-        }
-        
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-        }
-        
         .piggy-bank-level-1 { color: #78C88C !important; }
         .piggy-bank-level-2 { color: #FFA500 !important; }
         .piggy-bank-level-3 { color: #FF6B6B !important; }
@@ -779,7 +770,7 @@ window.trace_id = "0b27541817651790133333541e02de";
         <!-- 标题区域 -->
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800 mb-2">
-                <span class="material-icons text-3xl mr-2" style="color: #78C88C;">savings</span>
+                <span class="material-icons text-3xl mr-2" style="color: #78C88C;">star</span>
                 零花钱管家
             </h1>
             <p class="text-sm text-gray-600">智能管理小朋友的零花钱发放</p>
@@ -789,9 +780,6 @@ window.trace_id = "0b27541817651790133333541e02de";
         <div class="card rounded-xl p-6 mb-6 shadow-lg">
         <!-- QQ等级显示区域 -->
         <div class="level-container">
-            <div id="piggyBank" class="piggy-bank-icon">
-                <span class="material-icons">savings</span>
-            </div>
             <div id="upgradeEffect" class="upgrade-effect hidden">
                 <div class="upgrade-particles"></div>
             </div>
@@ -1429,8 +1417,8 @@ iconsContainer.innerHTML='';const totalStars=currentLevel;const moons=Math.floor
 for(let i=0;i<remainingMoons;i++){const icon=document.createElement('div');icon.className='level-icon moon active';icon.innerHTML='🌙';icon.title=`月亮 (${suns * 25 + (i + 1) * 5}级)`;iconsContainer.appendChild(icon);}
 for(let i=0;i<remainingStars;i++){const icon=document.createElement('div');icon.className='level-icon star active';icon.innerHTML='⭐';icon.title=`星星 (${suns * 25 + remainingMoons * 5 + (i + 1)}级)`;iconsContainer.appendChild(icon);}
 if(suns===0&&remainingMoons===0&&remainingStars===0){const icon=document.createElement('div');icon.className='level-icon star inactive';icon.innerHTML='⭐';icon.title='未开始';iconsContainer.appendChild(icon);}}
-playUpgradeAnimation(){const piggyBank=document.getElementById('piggyBank');const upgradeEffect=document.getElementById('upgradeEffect');const piggyBankContainer=document.getElementById('piggyBankContainer')||document.querySelector('.level-container');if(!piggyBank||!upgradeEffect){console.warn('Required elements for upgrade animation not found');return;}
-piggyBank.classList.add('upgrading');upgradeEffect.classList.remove('hidden');if(piggyBankContainer){this.createSparkles(piggyBankContainer);}
+playUpgradeAnimation(){const piggyBank=document.getElementById('piggyBank');const upgradeEffect=document.getElementById('upgradeEffect');const piggyBankContainer=document.getElementById('piggyBankContainer')||document.querySelector('.level-container');if(!upgradeEffect){console.warn('Required elements for upgrade animation not found');return;}
+if(piggyBank)piggyBank.classList.add('upgrading');upgradeEffect.classList.remove('hidden');if(piggyBankContainer){this.createSparkles(piggyBankContainer);}
 const levelInfo=this.getPiggyBankLevel(this.getCurrentBalance());const nextWeekAmount=this.calculateNextWeekAmount();this.showMessage(`🎉 恭喜升级！当前级别${levelInfo.level}级，下周将获得${nextWeekAmount}元`);setTimeout(()=>{if(piggyBank)piggyBank.classList.remove('upgrading');if(upgradeEffect)upgradeEffect.classList.add('hidden');},800);}
 createSparkles(container){if(!container){console.warn('Container for sparkles not found');return;}
 const sparkleCount=8;const containerRect=container.getBoundingClientRect();for(let i=0;i<sparkleCount;i++){setTimeout(()=>{const sparkle=document.createElement('div');if(!sparkle)return;sparkle.className='sparkle';sparkle.innerHTML='<span class="material-icons">star</span>';const angle=(Math.PI*2*i)/sparkleCount;const radius=40;const x=Math.cos(angle)*radius;const y=Math.sin(angle)*radius;if(sparkle.style&&container&&container.appendChild){sparkle.style.left=`${containerRect.width / 2 + x}px`;sparkle.style.top=`${containerRect.height / 2 + y}px`;container.appendChild(sparkle);setTimeout(()=>{if(sparkle&&sparkle.parentNode&&sparkle.parentNode.contains&&sparkle.parentNode.contains(sparkle)){sparkle.parentNode.removeChild(sparkle);}},1000);}},i*100);}}
@@ -1582,6 +1570,207 @@ showLevelModal(){const modal=document.getElementById('levelModal');const tableBo
 closeLevelModal(){const modal=document.getElementById('levelModal');if(modal){modal.classList.remove('show');}}
 getLevelTableData(){return[{range:'Lv.1-4',title:'咖宝学徒'},{range:'Lv.5-9',title:'见习咖宝'},{range:'Lv.10-14',title:'极速先锋'},{range:'Lv.15-19',title:'特警卫士'},{range:'Lv.20-24',title:'重装巨人'},{range:'Lv.25-29',title:'传说召唤师'},{range:'Lv.30-34',title:'暴风统帅'},{range:'Lv.35-39',title:'晶钻领主'},{range:'Lv.40-44',title:'四变兽王'},{range:'Lv.45-49',title:'黄金战神'},{range:'Lv.50-54',title:'双星大元帅'},{range:'Lv.55-59',title:'银河霸主'},{range:'Lv.60+',title:'时空创世神'}];}
 getTitleClass(title){const classMap={'咖宝学徒':'title-apprentice','见习咖宝':'title-novice','极速先锋':'title-pioneer','特警卫士':'title-guard','重装巨人':'title-giant','传说召唤师':'title-summoner','暴风统帅':'title-commander','晶钻领主':'title-lord','四变兽王':'title-beast','黄金战神':'title-god','双星大元帅':'title-marshal','银河霸主':'title-ruler','时空创世神':'title-creator'};return classMap[title]||'title-apprentice';}}
+
+(()=>{
+const P=PocketMoneyManager.prototype;
+const asType=(r)=>r&&r.entryType?r.entryType:'expense';
+const isIncome=(r)=>asType(r)==='income';
+const isExpense=(r)=>asType(r)!=='income';
+const sum=(arr,fn)=>arr.reduce((s,x)=>s+fn(x),0);
+
+const originalLoadSpendRecords=P.loadSpendRecords;
+P.loadSpendRecords=function(){
+  const list=originalLoadSpendRecords.call(this)||[];
+  return list.map(r=>({...r,entryType:r.entryType||'expense'}));
+};
+
+P.ensureTransactionUI=function(){
+  const spendTab=document.getElementById('spendTab');
+  if(spendTab){spendTab.innerHTML='<span class="material-icons text-lg mr-1">shopping_cart</span>\u8bb0\u5f55\u6536\u652f';}
+
+  const saveBtn=document.getElementById('saveSpendButton');
+  if(saveBtn){saveBtn.innerHTML='<span class="material-icons text-lg mr-2">save</span>\u4fdd\u5b58\u6536\u652f\u8bb0\u5f55';}
+
+  const historyFilter=document.getElementById('historyFilter');
+  if(historyFilter&&!historyFilter.querySelector('option[value="income"]')){
+    const opt=document.createElement('option');
+    opt.value='income';
+    opt.textContent='\u6536\u5165';
+    historyFilter.appendChild(opt);
+  }
+
+  const spendCategory=document.getElementById('spendCategory');
+  if(spendCategory){
+    const categoryWrap=spendCategory.closest('.mb-4');
+    if(categoryWrap&&!document.getElementById('entryType')){
+      const block=document.createElement('div');
+      block.className='mb-4';
+      block.innerHTML='<label class="block text-sm font-medium text-gray-700 mb-2"><span class="material-icons text-lg mr-1" style="color: #4a90e2;">swap_horiz</span>\u6536\u652f\u7c7b\u578b</label><select id="entryType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"><option value="expense">\u652f\u51fa</option><option value="income">\u6536\u5165</option></select>';
+      categoryWrap.parentNode.insertBefore(block,categoryWrap);
+    }
+  }
+
+  const typeEl=document.getElementById('entryType');
+  if(typeEl){
+    typeEl.onchange=()=>this.updateCategoryOptions(typeEl.value);
+    this.updateCategoryOptions(typeEl.value);
+  }
+};
+
+P.updateCategoryOptions=function(entryType='expense'){
+  const category=document.getElementById('spendCategory');
+  if(!category)return;
+  const options=entryType==='income'
+    ?[['reward','\u5956\u52b1'],['reissue','\u8865\u53d1'],['extra','\u989d\u5916']]
+    :[['food','\u9910\u996e'],['toy','\u73a9\u5177'],['book','\u6587\u5177\u4e66\u7c4d'],['snack','\u96f6\u98df'],['other','\u5176\u4ed6']];
+  category.innerHTML=options.map(([v,t])=>'<option value="'+v+'">'+t+'</option>').join('');
+};
+
+const originalBindEvents=P.bindEvents;
+P.bindEvents=function(){
+  originalBindEvents.call(this);
+  this.ensureTransactionUI();
+};
+
+P.getCurrentBalance=function(){
+  const giveTotal=sum(this.giveRecords,r=>r.amount);
+  const incomeTotal=sum(this.spendRecords.filter(isIncome),r=>r.amount);
+  const expenseTotal=sum(this.spendRecords.filter(isExpense),r=>r.amount);
+  return giveTotal+incomeTotal-expenseTotal;
+};
+
+P.getTotalStats=function(){
+  const giveTotal=sum(this.giveRecords,r=>r.amount);
+  const incomeTotal=sum(this.spendRecords.filter(isIncome),r=>r.amount);
+  const expenseTotal=sum(this.spendRecords.filter(isExpense),r=>r.amount);
+  return{totalGiven:giveTotal+incomeTotal,totalSpent:expenseTotal};
+};
+
+P.getMonthStats=function(){
+  const now=new Date();
+  const month=now.getMonth(),year=now.getFullYear();
+  const inMonth=(r)=>{const d=new Date(r.date);return d.getMonth()===month&&d.getFullYear()===year;};
+  const monthGiven=sum(this.giveRecords.filter(inMonth),r=>r.amount)+sum(this.spendRecords.filter(r=>isIncome(r)&&inMonth(r)),r=>r.amount);
+  const monthSpent=sum(this.spendRecords.filter(r=>isExpense(r)&&inMonth(r)),r=>r.amount);
+  return{monthGiven,monthSpent};
+};
+
+P.getAllMonthStats=function(){
+  const monthStats={};
+  const allDates=[];
+  this.giveRecords.forEach(r=>allDates.push(r.date));
+  this.spendRecords.forEach(r=>allDates.push(r.date));
+  allDates.forEach(dateStr=>{
+    const d=new Date(dateStr);const y=d.getFullYear();const m=d.getMonth();
+    const key=y+'-'+m.toString().padStart(2,'0');
+    if(!monthStats[key])monthStats[key]={year:y,month:m,monthName:y+'\u5e74'+(m+1).toString().padStart(2,'0')+'\u6708',given:0,spent:0};
+  });
+  this.giveRecords.forEach(r=>{const d=new Date(r.date);const key=d.getFullYear()+'-'+d.getMonth().toString().padStart(2,'0');if(monthStats[key])monthStats[key].given+=r.amount;});
+  this.spendRecords.forEach(r=>{const d=new Date(r.date);const key=d.getFullYear()+'-'+d.getMonth().toString().padStart(2,'0');if(!monthStats[key])return;if(isIncome(r))monthStats[key].given+=r.amount;else monthStats[key].spent+=r.amount;});
+  return Object.values(monthStats).sort((a,b)=>a.year!==b.year?b.year-a.year:b.month-a.month);
+};
+
+P.calculateBalanceAtDate=function(targetDate){
+  const t=targetDate.toISOString().split('T')[0];
+  const totalGiven=sum(this.giveRecords.filter(r=>r.date<=t),r=>r.amount)+sum(this.spendRecords.filter(r=>isIncome(r)&&r.date<=t),r=>r.amount);
+  const totalSpent=sum(this.spendRecords.filter(r=>isExpense(r)&&r.date<=t),r=>r.amount);
+  return totalGiven-totalSpent;
+};
+
+P.calculateBalanceBeforeDate=function(targetDate){
+  const t=targetDate.toISOString().split('T')[0];
+  const totalGiven=sum(this.giveRecords.filter(r=>r.date<t),r=>r.amount)+sum(this.spendRecords.filter(r=>isIncome(r)&&r.date<t),r=>r.amount);
+  const totalSpent=sum(this.spendRecords.filter(r=>isExpense(r)&&r.date<t),r=>r.amount);
+  return totalGiven-totalSpent;
+};
+
+P.getAllTimePoints=function(startDate,endDate){
+  const timePoints=[];const start=new Date(startDate);const end=new Date(endDate);let currentDate=new Date(start);
+  while(currentDate<=end){if(currentDate.getDay()===1){timePoints.push({date:currentDate.toISOString().split('T')[0],type:'monday',timestamp:currentDate.getTime()});}currentDate.setDate(currentDate.getDate()+1);} 
+  this.spendRecords.forEach(record=>{const d=new Date(record.date);if(d>=start&&d<=end){timePoints.push({date:record.date,type:'tx',data:record,timestamp:d.getTime()});}});
+  timePoints.sort((a,b)=>a.date===b.date?(a.type==='tx'?-1:1):a.timestamp-b.timestamp);
+  return timePoints;
+};
+
+P.generateGiveRecords=function(options={}){
+  const{startDate:inputStartDate=null,endDate:inputEndDate=null,clearExisting=false,source='auto'}=options;
+  const startDate=inputStartDate||this.startDate;
+  if(!startDate){if(clearExisting){this.giveRecords=[];this.saveGiveRecords();}return[];}
+  const endDate=inputEndDate||new Date();endDate.setHours(23,59,59,999);
+  if(clearExisting)this.giveRecords=[];
+  const allTimePoints=this.getAllTimePoints(startDate,endDate);const newRecords=[];let runningBalance=0;
+  for(const p of allTimePoints){
+    if(p.type==='tx'){runningBalance+=(isIncome(p.data)?p.data.amount:-p.data.amount);continue;}
+    const giveAmount=this.calculateGiveAmount(runningBalance);
+    newRecords.push({id:Date.now()+Math.random(),date:p.date,amount:giveAmount,note:this.generateGiveNote(source,runningBalance,p.date),autoGenerated:source!=='manual',timestamp:new Date().toISOString(),source:source});
+    runningBalance+=giveAmount;
+  }
+  if(newRecords.length>0){
+    if(clearExisting)this.giveRecords=newRecords;else{const existingDates=new Set(this.giveRecords.map(r=>r.date));this.giveRecords.push(...newRecords.filter(r=>!existingDates.has(r.date)));}
+    this.giveRecords.sort((a,b)=>new Date(a.date)-new Date(b.date));this.saveGiveRecords();
+  }
+  return newRecords;
+};
+
+P.saveSpendRecord=function(){
+  const date=document.getElementById('spendDate').value;
+  const amount=parseFloat(document.getElementById('spendAmount').value);
+  const category=document.getElementById('spendCategory').value;
+  const note=document.getElementById('spendNote').value;
+  const entryType=(document.getElementById('entryType')?.value)||'expense';
+  if(!date){this.showMessage('\u8bf7\u9009\u62e9\u65e5\u671f');return;}
+  if(!amount||amount<=0){this.showMessage('\u8bf7\u8f93\u5165\u6709\u6548\u91d1\u989d');return;}
+  const record={id:Date.now(),date,amount,category,note,timestamp:new Date().toISOString(),entryType};
+  this.spendRecords.push(record);
+  this.spendRecords.sort((a,b)=>new Date(a.date)-new Date(b.date));
+  this.saveSpendRecords();
+  this.recalculateGiveRecordsAfterDate(date);
+  this.updateDisplay();
+  this.resetSpendForm();
+  this.showMessage(entryType==='income'?'\u6536\u5165\u8bb0\u5f55\u4fdd\u5b58\u6210\u529f\uff01':'\u652f\u51fa\u8bb0\u5f55\u4fdd\u5b58\u6210\u529f\uff01');
+  setTimeout(()=>this.updateLevelDisplay(),100);
+};
+
+P.resetSpendForm=function(){
+  const amount=document.getElementById('spendAmount');if(amount)amount.value='10';
+  const note=document.getElementById('spendNote');if(note)note.value='';
+  const typeEl=document.getElementById('entryType');if(typeEl)typeEl.value='expense';
+  this.updateCategoryOptions('expense');
+};
+
+P.updateHistory=function(filter='all'){
+  const historyList=document.getElementById('historyList');const pagination=document.getElementById('pagination');const prevPage=document.getElementById('prevPage');const nextPage=document.getElementById('nextPage');const pageInfo=document.getElementById('pageInfo');
+  let allRecords=[];
+  this.giveRecords.forEach(r=>allRecords.push({...r,type:'give',icon:'payments',color:'green',label:'\u53d1\u653e'}));
+  this.spendRecords.forEach(r=>{if(isIncome(r))allRecords.push({...r,type:'income',icon:'payments',color:'blue',label:'\u6536\u5165'});else allRecords.push({...r,type:'spend',icon:'shopping_cart',color:'red',label:'\u652f\u51fa'});});
+  if(filter!=='all')allRecords=allRecords.filter(r=>r.type===filter);
+  allRecords.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(allRecords.length===0){historyList.innerHTML='<div class="text-center text-gray-500 py-4"><span class="material-icons text-2xl mb-2">receipt_long</span><p class="text-sm">\u6682\u65e0\u8bb0\u5f55</p></div>';pagination.classList.add('hidden');return;}
+  const totalPages=Math.ceil(allRecords.length/this.itemsPerPage);const startIndex=(this.currentPage-1)*this.itemsPerPage;const currentRecords=allRecords.slice(startIndex,startIndex+this.itemsPerPage);
+  historyList.innerHTML=currentRecords.map(record=>{const recordDate=new Date(record.date);const before=this.calculateBalanceBeforeDate(recordDate);const after=this.calculateBalanceAtDate(recordDate);const categoryText=record.category?this.getCategoryText(record.category):'';const noteText=record.note?' - '+record.note:'';const categoryDisplay=categoryText?' | '+categoryText:'';const deletable=record.type==='income'||record.type==='spend';const deleteButton=deletable?'<button class="delete-btn ml-2 text-red-500 hover:text-red-700" data-id="'+record.id+'" data-testid="delete-'+record.id+'"><span class="material-icons text-sm">delete</span></button>':'';const sign=(record.type==='give'||record.type==='income')?'+':'-';return '<div class="history-row bg-gray-50 rounded-lg p-3"><div class="flex justify-between items-start mb-2"><div class="flex items-center text-sm font-medium text-gray-800"><span class="material-icons text-lg mr-2 text-'+record.color+'-600">'+record.icon+'</span>'+record.label+deleteButton+'</div><div class="text-right"><div class="text-sm font-semibold text-'+record.color+'-600">'+sign+'\u697c'+record.amount.toFixed(2)+'</div></div></div><div class="text-xs text-gray-600 mb-1">'+record.date+categoryDisplay+noteText+'</div><div class="flex justify-between items-center text-xs"><div class="text-gray-500">\u4ea4\u6613\u524d \u697c'+before.toFixed(2)+'</div><div class="font-medium text-gray-700">\u4ea4\u6613\u540e \u697c'+after.toFixed(2)+'</div></div></div>';}).join('');
+  if(totalPages>1){pagination.classList.remove('hidden');prevPage.disabled=this.currentPage===1;nextPage.disabled=this.currentPage===totalPages;pageInfo.textContent='\u7b2c '+this.currentPage+' \u9875 / \u5171 '+totalPages+' \u9875';}else{pagination.classList.add('hidden');}
+  this.bindDeleteEvents();
+};
+
+P.showDeleteConfirm=function(id){
+  const record=this.spendRecords.find(r=>r.id===id);if(!record)return;this.pendingDeleteId=id;
+  const recordInfo=document.getElementById('deleteRecordInfo');
+  const categoryText=record.category?this.getCategoryText(record.category):'';const noteText=record.note||'';const typeText=isIncome(record)?'\u6536\u5165':'\u652f\u51fa';
+  recordInfo.innerHTML='<div class="record-info-item"><span class="record-info-label">\u65e5\u671f\uff1a</span><span class="record-info-value">'+record.date+'</span></div><div class="record-info-item"><span class="record-info-label">'+typeText+'\u91d1\u989d\uff1a</span><span class="record-info-value record-amount">\u697c'+record.amount.toFixed(2)+'</span></div>'+(categoryText?'<div class="record-info-item"><span class="record-info-label">\u5206\u7c7b\uff1a</span><span class="record-info-value">'+categoryText+'</span></div>':'')+(noteText?'<div class="record-info-item"><span class="record-info-label">\u5907\u6ce8\uff1a</span><span class="record-info-value">'+noteText+'</span></div>':'');
+  document.getElementById('deleteConfirmModal').classList.add('show');
+};
+
+P.deleteSpendRecord=function(id){
+  const index=this.spendRecords.findIndex(r=>r.id===id);
+  if(index!==-1){const deleted=this.spendRecords[index];this.spendRecords.splice(index,1);this.saveSpendRecords();this.recalculateGiveRecordsAfterDate(deleted.date);this.currentPage=1;this.updateDisplay();this.showMessage('\u6536\u652f\u8bb0\u5f55\u5df2\u5220\u9664\uff01');setTimeout(()=>this.updateLevelDisplay(),100);} 
+};
+
+P.getCategoryText=function(category){
+  const categories={food:'\u9910\u996e',toy:'\u73a9\u5177',book:'\u6587\u5177\u4e66\u7c4d',snack:'\u96f6\u98df',other:'\u5176\u4ed6',reward:'\u5956\u52b1',reissue:'\u8865\u53d1',extra:'\u989d\u5916'};
+  return categories[category]||category;
+};
+})();
+
 document.addEventListener('DOMContentLoaded',()=>{window.pocketMoneyManager=new PocketMoneyManager();});
 </script>
 
