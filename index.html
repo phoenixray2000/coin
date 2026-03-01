@@ -1,443 +1,1588 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<!DOCTYPE html><html lang="zh-CN"><head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lucas的零花钱管家</title>
+    <title>零花钱管家</title>
+    
+    
     <script defer src="./tailwind4.1.13.js"></script>
     <style>
-        /* 核心定制样式 */
+        .material-icons {
+            font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif;
+            font-style: normal;
+            font-weight: 400;
+            letter-spacing: normal;
+            line-height: 1;
+            text-transform: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            vertical-align: middle;
+        }
+    </style>
+    <script>
+        (() => {
+            const ICONS = {
+                savings: '\u{1F437}', shopping_cart: '\u{1F6CD}\uFE0F', shopping_bag: '\u{1F9FA}',
+                payments: '\u{1F4B5}', bar_chart: '\u{1F4CA}', history: '\u{1F4DC}',
+                storage: '\u{1F4BE}', trending_up: '\u{1F4C8}', calendar_today: '\u{1F4C5}',
+                category: '\u{1F3F7}\uFE0F', note: '\u{1F4DD}', save: '\u{1F4BE}',
+                info: '\u{2139}\uFE0F', content_copy: '\u{1F4CB}', restore: '\u{267B}\uFE0F',
+                warning: '\u26A0\uFE0F', emoji_events: '\u{1F3C6}', close: '\u274C',
+                delete: '\u{1F5D1}\uFE0F', chevron_left: '\u25C0\uFE0F', chevron_right: '\u25B6\uFE0F',
+                check_circle: '\u2705', check: '\u2705', receipt_long: '\u{1F9FE}',
+                event: '\u{1F4C6}', backup: '\u{1F5C4}\uFE0F', autorenew: '\u{1F504}',
+                auto_awesome: '\u2728', diamond: '\u{1F48E}', star: '\u2B50'
+            };
+
+            const apply = (root = document) => {
+                root.querySelectorAll('.material-icons').forEach((el) => {
+                    const key = (el.textContent || '').trim();
+                    if (ICONS[key]) el.textContent = ICONS[key];
+                });
+            };
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => apply());
+            } else {
+                apply();
+            }
+
+            const observer = new MutationObserver((mutations) => {
+                for (const mutation of mutations) {
+                    mutation.addedNodes.forEach((node) => {
+                        if (!(node instanceof Element)) return;
+                        if (node.matches && node.matches('.material-icons')) {
+                            const key = (node.textContent || '').trim();
+                            if (ICONS[key]) node.textContent = ICONS[key];
+                        }
+                        apply(node);
+                    });
+                }
+            });
+
+            document.addEventListener('DOMContentLoaded', () => {
+                observer.observe(document.body, { childList: true, subtree: true });
+            });
+        })();
+    </script>
+
+    <style>
         body {
             background: linear-gradient(135deg, #f0f9e8 0%, #fef3e2 100%);
             background-color: #f0f9e8;
         }
-        .container { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(10px); border: 1px solid rgba(120, 200, 140, 0.2); }
-        .primary-button { background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%); transition: all 0.3s ease; }
-        .primary-button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(120, 200, 140, 0.3); }
-        .primary-button:active { transform: translateY(0); }
-        .secondary-button { background: linear-gradient(135deg, #ff9b9b 0%, #ff7b7b 100%); transition: all 0.3s ease; }
-        .secondary-button:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(255, 123, 123, 0.3); }
-        .card { background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(120, 200, 140, 0.15); transition: all 0.3s ease; }
-        .card:hover { box-shadow: 0 8px 20px rgba(120, 200, 140, 0.1); }
-        .amount-display { background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-        .history-row { transition: all 0.3s ease; }
-        .history-row:hover { background: rgba(120, 200, 140, 0.05); }
-        input[type="number"] { -moz-appearance: textfield; }
-        input[type="number"]::-webkit-outer-spin-button, input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .tab-button { transition: all 0.3s ease; border: none; background: transparent; cursor: pointer; }
-        .tab-button.active { background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%); color: white; }
         
-        /* 动画与浮层样式 */
-        #piggyBank { animation: float 3s ease-in-out infinite; font-size: 40px; }
-        @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-        .level-container { background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%); border-radius: 20px; padding: 20px; position: relative; overflow: hidden; color: white;}
-        .level-display { display: flex; justify-content: space-between; position: relative; z-index: 2; }
-        .level-icon { width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; margin: 2px; }
-        .level-icon.star { background: linear-gradient(135deg, #F4D03F 0%, #D4AC0D 100%); }
-        .level-icon.moon { background: linear-gradient(135deg, #D7BDE2 0%, #A9CCE3 100%); }
-        .level-icon.sun { background: linear-gradient(135deg, #F8B739 0%, #E67E22 100%); }
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: all 0.3s ease; z-index: 9999; }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
-        .modal-content { background: white; border-radius: 16px; width: 90%; max-width: 400px; transform: scale(0.8); transition: all 0.3s ease; max-height: 80vh; overflow-y: auto; }
-        .modal-overlay.show .modal-content { transform: scale(1); }
-        .emoji-icon { font-size: 1.2em; vertical-align: middle; margin-right: 4px; display: inline-block;}
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(120, 200, 140, 0.2);
+        }
+        
+        .primary-button {
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .primary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(120, 200, 140, 0.3);
+        }
+        
+        .primary-button:active {
+            transform: translateY(0);
+        }
+        
+        .secondary-button {
+            background: linear-gradient(135deg, #ff9b9b 0%, #ff7b7b 100%);
+            transition: all 0.3s ease;
+        }
+        
+        .secondary-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 123, 123, 0.3);
+        }
+        
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(120, 200, 140, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            box-shadow: 0 8px 20px rgba(120, 200, 140, 0.1);
+        }
+        
+        .amount-display {
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .history-row {
+            transition: all 0.3s ease;
+        }
+        
+        .history-row:hover {
+            background: rgba(120, 200, 140, 0.05);
+        }
+        
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input[type="date"] {
+            color-scheme: light;
+        }
+        
+        .tab-button {
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button.active {
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            color: white;
+        }
+        
+        /* 存钱罐升级动画样式 */
+        #piggyBank {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .piggy-bank-level-1 { color: #78C88C !important; }
+        .piggy-bank-level-2 { color: #FFA500 !important; }
+        .piggy-bank-level-3 { color: #FF6B6B !important; }
+        .piggy-bank-level-4 { color: #4ECDC4 !important; }
+        .piggy-bank-level-5 { color: #45B7D1 !important; }
+        .piggy-bank-level-6 { color: #96CEB4 !important; }
+        .piggy-bank-level-7 { color: #DDA0DD !important; }
+        .piggy-bank-level-8 { color: #FFD700 !important; }
+        .piggy-bank-level-9 { color: #FF69B4 !important; }
+        .piggy-bank-level-10 { color: #FF1493 !important; }
+        
+        @keyframes upgrade {
+            0% { transform: scale(1) rotate(0deg); }
+            25% { transform: scale(1.2) rotate(5deg); }
+            50% { transform: scale(1.3) rotate(-5deg); }
+            75% { transform: scale(1.2) rotate(3deg); }
+            100% { transform: scale(1) rotate(0deg); }
+        }
+        
+        .upgrading {
+            animation: upgrade 0.8s ease-in-out;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1); }
+        }
+        
+        .sparkle {
+            position: absolute;
+            color: #FFD700;
+            animation: sparkle 1s ease-in-out;
+            pointer-events: none;
+        }
+        
+        /* 等级样式 */
+        .level-container {
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            border-radius: 20px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(120, 200, 140, 0.25);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .level-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.1), transparent);
+            animation: shimmer 3s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .level-display {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 2;
+            gap: 15px;
+        }
+        
+        .level-icons {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex-wrap: wrap;
+            max-width: 180px;
+        }
+        
+        /* 等级图标样式 - 星星、月亮、太阳系统 */
+        .level-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            position: relative;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            margin: 1px;
+            transition: all 0.3s ease;
+        }
+        
+        .level-icon.star {
+            background: linear-gradient(135deg, #F4D03F 0%, #D4AC0D 100%);
+        }
+        
+        .level-icon.moon {
+            background: linear-gradient(135deg, #D7BDE2 0%, #A9CCE3 100%);
+            font-size: 13px;
+        }
+        
+        .level-icon.sun {
+            background: linear-gradient(135deg, #F8B739 0%, #E67E22 100%);
+            font-size: 14px;
+        }
+        
+        .level-icon.active {
+            animation: pulse 2s infinite;
+            transform: scale(1.1);
+        }
+        
+        .level-icon.inactive {
+            background: rgba(255,255,255,0.2);
+            color: rgba(255,255,255,0.5);
+            transform: scale(0.9);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+        
+        .level-info {
+            text-align: right;
+            color: white;
+        }
+        
+        .level-current {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .level-text {
+            font-size: 12px;
+            opacity: 0.9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: underline;
+            text-decoration-style: dotted;
+        }
+        
+        .level-text:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+        
+        /* 等级对照表浮层样式 */
+        .level-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .level-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .level-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .level-modal-overlay.show .level-modal-content {
+            transform: scale(1) translateY(0);
+        }
+        
+        .level-modal-header {
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            text-align: center;
+            position: relative;
+        }
+        
+        .level-modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .level-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .level-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .level-modal-body {
+            padding: 20px;
+        }
+        
+        .level-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .level-table th,
+        .level-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .level-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .level-table td {
+            font-size: 13px;
+        }
+        
+        .level-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .level-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
+            color: white;
+        }
+        
+        .level-title-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            margin-left: 8px;
+        }
+        
+        .title-apprentice { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .title-novice { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .title-pioneer { background: linear-gradient(135deg, #2ecc71, #27ae60); }
+        .title-guard { background: linear-gradient(135deg, #e74c3c, #c0392b); }
+        .title-giant { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .title-summoner { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+        .title-commander { background: linear-gradient(135deg, #1abc9c, #16a085); }
+        .title-lord { background: linear-gradient(135deg, #34495e, #2c3e50); }
+        .title-beast { background: linear-gradient(135deg, #e67e22, #d35400); }
+        .title-god { background: linear-gradient(135deg, #f1c40f, #f39c12); }
+        .title-marshal { background: linear-gradient(135deg, #8e44ad, #9b59b6); }
+        .title-ruler { background: linear-gradient(135deg, #2c3e50, #34495e); }
+        .title-creator { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+        
+
+        .year-end-prediction {
+            margin-top: 15px;
+            padding: 12px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            color: white;
+            font-size: 12px;
+            text-align: center;
+            position: relative;
+            z-index: 2;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .piggy-bank-icon {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 40px;
+            color: rgba(255,255,255,0.8);
+            transition: all 0.3s ease;
+            z-index: 2;
+        }
+        
+        .piggy-bank-icon.upgrading {
+            animation: bounce 0.8s ease-in-out;
+            color: #FFD700;
+        }
+        
+        .upgrade-effect {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 3;
+        }
+        
+        .upgrade-effect.hidden {
+            display: none;
+        }
+        
+        .upgrade-particles {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100px;
+            height: 100px;
+        }
+        
+        .sparkle {
+            position: absolute;
+            color: #FFD700;
+            font-size: 20px;
+            animation: sparkleFloat 1s ease-out forwards;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-20px); }
+            60% { transform: translateY(-10px); }
+        }
+        
+        @keyframes sparkleFloat {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(0);
+            }
+            50% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -80px) scale(0.5);
+            }
+        }
+        
+        .prediction-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        
+        .prediction-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .prediction-level {
+            font-size: 16px;
+            font-weight: bold;
+            color: #FFD700;
+        }
+
+        /* 删除确认浮层样式 */
+        .delete-confirm-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-confirm-modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .delete-confirm-modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 400px;
+            width: 100%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            transform: scale(0.8) translateY(20px);
+            transition: all 0.3s ease;
+        }
+        
+        .delete-confirm-modal-overlay.show .delete-confirm-modal-content {
+            transform: scale(1) translateY(0);
+        }
+        
+        .delete-confirm-modal-header {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff5252 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 16px 16px 0 0;
+            text-align: center;
+            position: relative;
+        }
+        
+        .delete-confirm-modal-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .delete-confirm-modal-close {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+        }
+        
+        .delete-confirm-modal-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(1.1);
+        }
+        
+        .delete-confirm-modal-body {
+            padding: 20px;
+        }
+        
+        .delete-confirm-warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .warning-text {
+            color: #856404;
+            font-weight: 600;
+            margin: 0 0 8px 0;
+            font-size: 14px;
+        }
+        
+        .warning-detail {
+            color: #856404;
+            font-size: 12px;
+            margin: 0;
+            line-height: 1.4;
+        }
+        
+        .delete-confirm-record-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .record-info-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        
+        .record-info-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .record-info-label {
+            color: #666;
+            font-weight: 500;
+        }
+        
+        .record-info-value {
+            color: #333;
+            font-weight: 600;
+        }
+        
+        .record-amount {
+            color: #ff5252;
+            font-size: 16px;
+        }
+        
+        .delete-confirm-actions {
+            display: flex;
+            gap: 12px;
+        }
+        
+        .confirm-delete-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #ff5252 0%, #ff6b6b 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .confirm-delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(255, 82, 82, 0.3);
+        }
+        
+        .confirm-delete-btn:active {
+            transform: translateY(0);
+        }
+        
+        .cancel-delete-btn {
+            flex: 1;
+            background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .cancel-delete-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(108, 117, 125, 0.3);
+        }
+        
+        .cancel-delete-btn:active {
+            transform: translateY(0);
+        }
     </style>
+<script>
+window.artifactId = "flashapp-b82eb236636e4224";
+window.artifactVersion = "83";
+window.trace_id = "0b27541817651790133333541e02de";
+</script>
+<meta http-equiv="Content-Security-Policy" content="
+  script-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *.alipay.com *.alipayobjects.com  *.amap.com *.lingguang.com *.lingguangcontent.com;
+  frame-src 'self' data: blob: *.alipay.com *.alipayobjects.com *.amap.com *.lingguang.com *.lingguangcontent.com;
+  connect-src 'self' data: blob: *.alipay.com *.alipayobjects.com  *.amap.com *.lingguang.com *.lingguangcontent.com;
+  child-src 'self' data: blob: *.alipay.com *.alipayobjects.com  *.amap.com *.lingguang.com *.lingguangcontent.com;
+  object-src 'self' data: blob: *.alipay.com *.alipayobjects.com  *.amap.com *.lingguang.com *.lingguangcontent.com;
+  base-uri 'self' *.alipay.com *.alipayobjects.com *.amap.com *.lingguang.com *.lingguangcontent.com;
+  form-action 'none';
+  upgrade-insecure-requests;
+">
+
 </head>
 <body>
-    <div id="container" class="container min-h-screen p-4 mx-auto max-w-md shadow-xl rounded-xl my-4">
-        
+    <div id="container" class="container min-h-screen p-4 mx-auto max-w-md">
+        <!-- 标题区域 -->
         <div class="text-center mb-6">
             <h1 class="text-2xl font-bold text-gray-800 mb-2">
-                <span class="emoji-icon">💰</span>Lucas的零花钱管家
+                <span class="material-icons text-3xl mr-2" style="color: #78C88C;">savings</span>
+                零花钱管家
             </h1>
-            <p class="text-sm text-gray-600">离线纯净版 · 专属财富记账</p>
+            <p class="text-sm text-gray-600">智能管理小朋友的零花钱发放</p>
         </div>
 
+        <!-- 当前状态卡片 -->
         <div class="card rounded-xl p-6 mb-6 shadow-lg">
-            <div class="level-container mb-6 shadow-md">
-                <div id="piggyBank" class="absolute top-4 left-4 z-10">🐷</div>
-                <div class="level-display">
-                    <div id="levelIcons" class="flex flex-wrap max-w-[180px] gap-1 mt-10 ml-16"></div>
-                    <div class="text-right">
-                        <div id="levelCurrent" class="text-2xl font-bold mb-1">Lv.1</div>
-                        <div id="levelText" class="text-sm underline cursor-pointer hover:scale-105 transition-transform">小猪存钱罐</div>
-                    </div>
+        <!-- QQ等级显示区域 -->
+        <div class="level-container">
+            <div id="piggyBank" class="piggy-bank-icon">
+                <span class="material-icons">savings</span>
+            </div>
+            <div id="upgradeEffect" class="upgrade-effect hidden">
+                <div class="upgrade-particles"></div>
+            </div>
+            <div class="level-display">
+                <div class="level-icons" id="levelIcons">
+                    <!-- 等级图标将通过JavaScript动态生成 -->
                 </div>
-                <div class="mt-4 p-2 bg-white/20 rounded-lg text-xs text-center border border-white/30 backdrop-blur-sm relative z-10">
-                    <div class="font-bold flex justify-center items-center gap-1 mb-1">
-                        <span class="emoji-icon">📈</span>预计年底等级
-                    </div>
-                    <div><span id="yearEndLevel" class="text-yellow-300 font-bold text-sm">Lv.1</span> <span id="yearEndText"></span></div>
+                <div class="level-info">
+                    <div class="level-current" id="levelCurrent">Lv.1</div>
+                    <div class="level-text" id="levelText">小猪存钱罐</div>
                 </div>
             </div>
+            
+            <div class="year-end-prediction">
+                <div class="prediction-title">
+                    <span class="material-icons" style="font-size: 14px;">trending_up</span>
+                    预计到年底等级
+                </div>
+                <div class="prediction-content">
+                    <span class="prediction-level" id="yearEndLevel">Lv.1</span>
+                    <span id="yearEndText">还需0个等级</span>
+                </div>
+            </div>
+        </div>
 
+        <!-- 当前状态卡片 -->
+        <div class="card rounded-xl p-6 mb-6 shadow-lg">
             <div class="text-center mb-4">
-                <div class="text-sm text-gray-600 mb-1">当前结余金额</div>
+                <div class="text-sm text-gray-600 mb-1">当前累计金额</div>
                 <div class="text-4xl font-bold amount-display" id="totalAmount">¥0</div>
             </div>
+            
+            <div class="bg-gray-50 rounded-lg p-3 mb-3" style="display: none;">
+                <div class="text-xs text-gray-600 mb-1">发放规则</div>
+                <div class="text-sm text-gray-800">交易前余额 &lt; ¥6 发放 ¥6，余额 &lt; ¥13 发放 ¥7，余额 &lt; ¥21 发放 ¥8...</div>
+            </div>
+            
             <div class="grid grid-cols-2 gap-4 text-center">
                 <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-600 mb-1">总入账</div>
+                    <div class="text-xs text-gray-600 mb-1">总发放金额</div>
                     <div class="text-xl font-semibold text-gray-800" id="totalGiven">¥0</div>
                 </div>
                 <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-600 mb-1">总消费</div>
+                    <div class="text-xs text-gray-600 mb-1">总消费金额</div>
                     <div class="text-xl font-semibold text-red-600" id="totalSpent">¥0</div>
                 </div>
             </div>
         </div>
 
-        <div class="flex mb-6 bg-gray-100 rounded-lg p-1 gap-1">
-            <button id="statsTab" class="tab-button active flex-1 py-2 rounded-md text-sm font-medium"><span class="emoji-icon">📊</span>统计</button>
-            <button id="historyTab" class="tab-button flex-1 py-2 rounded-md text-sm font-medium"><span class="emoji-icon">🕒</span>记录</button>
-            <button id="spendTab" class="tab-button flex-1 py-2 rounded-md text-sm font-medium"><span class="emoji-icon">🛒</span>记账</button>
-            <button id="autoTab" class="tab-button flex-1 py-2 rounded-md text-sm font-medium"><span class="emoji-icon">⚙️</span>规则</button>
-            <button id="dataTab" class="tab-button flex-1 py-2 rounded-md text-sm font-medium"><span class="emoji-icon">💾</span>数据</button>
+        <!-- 功能选项卡 -->
+        <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+            <button id="statsTab" class="tab-button active flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="stats-tab">
+                <span class="material-icons text-lg mr-1">bar_chart</span>
+                月度统计
+            </button>
+            <button id="historyTab" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="history-tab">
+                <span class="material-icons text-lg mr-1">history</span>
+                最近记录
+            </button>
+            <button id="spendTab" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="spend-tab">
+                <span class="material-icons text-lg mr-1">shopping_cart</span>
+                记录消费
+            </button>
+            <button id="autoTab" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="auto-tab">
+                <span class="material-icons text-lg mr-1">autorenew</span>
+                自动发放
+            </button>
+            <button id="dataTab" class="tab-button flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="data-tab">
+                <span class="material-icons text-lg mr-1">storage</span>
+                数据管理
+            </button>
         </div>
 
+        <!-- 月度统计区域 -->
         <div id="statsSection" class="card rounded-xl p-6 mb-6 shadow-lg">
-            <h3 class="text-lg font-semibold mb-2"><span class="emoji-icon">📊</span>月度收支统计</h3>
-            <div id="monthStatsList" class="space-y-3 mt-4"></div>
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">bar_chart</span>
+                    月度收支统计
+                </h3>
+                <div class="text-xs text-gray-600 mb-3">按月份显示零花钱发放和消费情况</div>
+            </div>
+
+            <div id="monthStatsList" class="space-y-3">
+                <div class="text-center text-gray-500 py-8">
+                    <span class="material-icons text-2xl mb-2">bar_chart</span>
+                    <p class="text-sm">暂无统计数据</p>
+                </div>
+            </div>
+            
+            <!-- 月度统计翻页控件 -->
             <div id="monthStatsPagination" class="flex justify-between items-center mt-4 hidden">
-                <button id="monthStatsPrevPage" class="px-3 py-1 bg-gray-100 rounded-lg">上一页</button>
-                <span id="monthStatsPageInfo" class="text-sm text-gray-600"></span>
-                <button id="monthStatsNextPage" class="px-3 py-1 bg-gray-100 rounded-lg">下一页</button>
+                <button id="monthStatsPrevPage" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    <span class="material-icons text-sm mr-1">chevron_left</span>
+                    上一页
+                </button>
+                <span id="monthStatsPageInfo" class="text-sm text-gray-600">第 1 页</span>
+                <button id="monthStatsNextPage" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                    下一页
+                    <span class="material-icons text-sm ml-1">chevron_right</span>
+                </button>
             </div>
         </div>
 
+        <!-- 历史记录区域 -->
         <div id="historySection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
             <div class="flex justify-between items-center mb-4">
-                <h3 class="text-lg font-semibold"><span class="emoji-icon">🕒</span>最近记录</h3>
-                <select id="historyFilter" class="text-sm px-2 py-1 border rounded">
-                    <option value="all">全部</option><option value="give">发放</option><option value="spend">消费</option>
+                <h3 class="text-lg font-semibold text-gray-800">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">history</span>
+                    最近记录
+                </h3>
+                <select id="historyFilter" class="text-sm px-2 py-1 border border-gray-300 rounded" data-testid="history-filter">
+                    <option value="all">全部</option>
+                    <option value="give">发放</option>
+                    <option value="spend">消费</option>
                 </select>
             </div>
-            <div class="bg-blue-50 rounded-lg p-4 mb-4 border border-blue-200 flex justify-between items-center">
-                <div>
-                    <div class="text-sm font-medium text-gray-700"><span class="emoji-icon">📈</span>下周预计发放</div>
+            
+            <!-- 预计下周发放金额显示 -->
+            <div class="bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-4 mb-4 border border-blue-200">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <span class="material-icons text-2xl mr-3 text-blue-600">trending_up</span>
+                        <div>
+                            <div class="text-sm font-medium text-gray-700">预计下周发放金额</div>
+                            <div class="text-xs text-gray-500">基于当前余额计算</div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        <div class="text-2xl font-bold text-blue-600" id="nextWeekAmount">¥0</div>
+                        <div class="text-xs text-gray-500">下次发放</div>
+                    </div>
                 </div>
-                <div class="text-right text-xl font-bold text-blue-600" id="nextWeekAmount">¥0</div>
             </div>
-            <div id="historyList" class="space-y-2"></div>
+            
+            <div id="historyList" class="space-y-2">
+                <div class="text-center text-gray-500 py-4">
+                    <span class="material-icons text-2xl mb-2">receipt_long</span>
+                    <p class="text-sm">暂无记录</p>
+                </div>
+            </div>
+            
+            <!-- 翻页控件 -->
             <div id="pagination" class="flex justify-between items-center mt-4 hidden">
-                <button id="prevPage" class="px-3 py-1 bg-gray-100 rounded-lg">上一页</button>
-                <span id="pageInfo" class="text-sm text-gray-600"></span>
-                <button id="nextPage" class="px-3 py-1 bg-gray-100 rounded-lg">下一页</button>
+                <button id="prevPage" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" data-testid="prev-page">
+                    <span class="material-icons text-sm mr-1">chevron_left</span>
+                    上一页
+                </button>
+                <span id="pageInfo" class="text-sm text-gray-600">第 1 页</span>
+                <button id="nextPage" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" data-testid="next-page">
+                    下一页
+                    <span class="material-icons text-sm ml-1">chevron_right</span>
+                </button>
             </div>
         </div>
 
+        <!-- 记录消费区域 -->
         <div id="spendSection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
-            <h3 class="text-lg font-semibold mb-4"><span class="emoji-icon">🛒</span>记录一笔消费</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">📅</span>日期</label>
-                    <input type="date" id="spendDate" class="w-full px-3 py-2 border rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">🛍️</span>金额</label>
-                    <input type="number" id="spendAmount" value="10" step="0.1" class="w-full px-3 py-2 border rounded-lg">
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">🏷️</span>类型</label>
-                    <select id="spendCategory" class="w-full px-3 py-2 border rounded-lg">
-                        <option value="food">餐饮</option><option value="toy">玩具</option><option value="book">书籍文具</option><option value="snack">零食</option><option value="other">其他</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">📝</span>备注</label>
-                    <input type="text" id="spendNote" placeholder="例如：买了一辆四驱车" class="w-full px-3 py-2 border rounded-lg">
-                </div>
-                <button id="saveSpendButton" class="secondary-button w-full py-3 text-white font-medium rounded-lg">保存消费</button>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">calendar_today</span>
+                    消费日期
+                </label>
+                <input type="date" id="spendDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-testid="spend-date">
             </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">shopping_bag</span>
+                    消费金额
+                </label>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-600">¥</span>
+                    <input type="number" id="spendAmount" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" min="0.01" max="1000" step="0.01" value="10" data-testid="spend-amount">
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">category</span>
+                    消费类型
+                </label>
+                <select id="spendCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-testid="spend-category">
+                    <option value="food">餐饮</option>
+                    <option value="toy">玩具</option>
+                    <option value="book">文具书籍</option>
+                    <option value="snack">零食</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">note</span>
+                    备注（可选）
+                </label>
+                <input type="text" id="spendNote" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="买了喜欢的玩具" data-testid="spend-note">
+            </div>
+
+            <button id="saveSpendButton" class="secondary-button w-full py-3 px-6 text-white font-medium rounded-lg shadow-md" data-testid="save-spend-button">
+                <span class="material-icons text-lg mr-2">save</span>
+                保存消费记录
+            </button>
         </div>
 
+        <!-- 自动发放设置区域 -->
         <div id="autoSection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
-            <h3 class="text-lg font-semibold mb-4"><span class="emoji-icon">⚙️</span>发放规则设置</h3>
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">📆</span>开始日期</label>
-                    <input type="date" id="startDate" class="w-full px-3 py-2 border rounded-lg">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">event</span>
+                    开始发放日期
+                </label>
+                <input type="date" id="startDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" data-testid="start-date">
+                <div class="text-xs text-gray-500 mt-1">系统将从此日期开始，每周一自动发放零花钱</div>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">payments</span>
+                    初始发放金额
+                </label>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-600">¥</span>
+                    <input type="number" id="baseAmount" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500" min="1" max="100" step="1" value="6" data-testid="base-amount">
                 </div>
-                <div>
-                    <label class="block text-sm text-gray-700 mb-1"><span class="emoji-icon">💰</span>基准底薪 (初始金额)</label>
-                    <input type="number" id="baseAmount" value="6" min="1" class="w-full px-3 py-2 border rounded-lg">
+                <div class="text-xs text-gray-500 mt-1">第一次发放的基础金额，后续每周递增1元</div>
+            </div>
+
+            <div class="mb-4">
+                <div class="bg-blue-50 rounded-lg p-3">
+                    <div class="flex items-center text-sm text-blue-800">
+                        <span class="material-icons text-lg mr-2">info</span>
+                        <span>发放规则：根据当前余额自动计算发放金额</span>
+                    </div>
+                    <div class="text-xs text-blue-700 mt-1 ml-7" id="ruleDescription">
+                        交易前余额 &lt; ¥<span id="ruleFirstThreshold">6</span> 发放 ¥<span id="ruleFirstAmount">6</span>，余额 &lt; ¥<span id="ruleSecondThreshold">13</span> 发放 ¥<span id="ruleSecondAmount">7</span>，余额 &lt; ¥<span id="ruleThirdThreshold">21</span> 发放 ¥<span id="ruleThirdAmount">8</span>...
+                    </div>
                 </div>
-                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-700">
-                    <p><span class="emoji-icon">ℹ️</span><strong>规则机制：</strong></p>
-                    <p class="mt-1 text-xs">自动按周结算。余额 &lt; ¥<span id="ruleFirstThreshold">6</span> 发 ¥<span id="ruleFirstAmount">6</span>，余额 &lt; ¥<span id="ruleSecondThreshold">13</span> 发 ¥<span id="ruleSecondAmount">7</span>... 依次递增。</p>
+            </div>
+
+            <div class="mb-4">
+                <div class="bg-gray-50 rounded-lg p-3">
+                    <div class="text-xs text-gray-600 mb-1">发放统计</div>
+                    <div class="grid grid-cols-2 gap-2 text-center">
+                        <div>
+                            <div class="text-lg font-semibold text-gray-800" id="totalGiveCount">0</div>
+                            <div class="text-xs text-gray-500">总发放次数</div>
+                        </div>
+                        <div>
+                            <div class="text-lg font-semibold text-green-600" id="totalGiveAmount">¥0</div>
+                            <div class="text-xs text-gray-500">总发放金额</div>
+                        </div>
+                    </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 text-center bg-gray-50 p-3 rounded-lg">
-                    <div><div class="text-lg font-bold" id="totalGiveCount">0</div><div class="text-xs">总发放次数</div></div>
-                    <div><div class="text-lg font-bold text-green-600" id="totalGiveAmount">¥0</div><div class="text-xs">总计发放</div></div>
+            </div>
+
+            <button id="generateButton" class="primary-button w-full py-3 px-6 text-white font-medium rounded-lg shadow-md" data-testid="generate-button">
+                <span class="material-icons text-lg mr-2">autorenew</span>
+                生成发放记录
+            </button>
+        </div>
+
+        <!-- 记录消费区域 -->
+        <div id="spendSection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">calendar_today</span>
+                    消费日期
+                </label>
+                <input type="date" id="spendDate" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-testid="spend-date">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">shopping_bag</span>
+                    消费金额
+                </label>
+                <div class="flex items-center space-x-2">
+                    <span class="text-gray-600">¥</span>
+                    <input type="number" id="spendAmount" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" min="0.01" max="1000" step="0.01" value="10" data-testid="spend-amount">
                 </div>
-                <button id="generateButton" class="primary-button w-full py-3 text-white font-medium rounded-lg">手动强制结算</button>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">category</span>
+                    消费类型
+                </label>
+                <select id="spendCategory" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" data-testid="spend-category">
+                    <option value="food">餐饮</option>
+                    <option value="toy">玩具</option>
+                    <option value="book">文具书籍</option>
+                    <option value="snack">零食</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                    <span class="material-icons text-lg mr-1" style="color: #ff7b7b;">note</span>
+                    备注（可选）
+                </label>
+                <input type="text" id="spendNote" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500" placeholder="买了喜欢的玩具" data-testid="spend-note">
+            </div>
+
+            <button id="saveSpendButton" class="secondary-button w-full py-3 px-6 text-white font-medium rounded-lg shadow-md" data-testid="save-spend-button">
+                <span class="material-icons text-lg mr-2">save</span>
+                保存消费记录
+            </button>
+        </div>
+
+        <!-- 月度统计区域 -->
+        <div id="statsSection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">bar_chart</span>
+                    月度收支统计
+                </h3>
+                <div class="text-xs text-gray-600 mb-3">按月份显示零花钱发放和消费情况</div>
+            </div>
+
+            <div id="monthStatsList" class="space-y-3">
+                <div class="text-center text-gray-500 py-8">
+                    <span class="material-icons text-2xl mb-2">bar_chart</span>
+                    <p class="text-sm">暂无统计数据</p>
+                </div>
             </div>
         </div>
 
+        <!-- 数据管理区域 -->
         <div id="dataSection" class="card rounded-xl p-6 mb-6 shadow-lg hidden">
-            <h3 class="text-lg font-semibold mb-4"><span class="emoji-icon">🗄️</span>本地数据管理</h3>
-            <div class="space-y-4">
-                <div class="bg-green-50 p-3 rounded-lg text-sm text-green-800">
-                    <span class="emoji-icon">✅</span>数据完全保存在本设备，安全无泄露。
+            <div class="mb-6">
+                <h3 class="text-lg font-semibold text-gray-800 mb-3">
+                    <span class="material-icons text-lg mr-1" style="color: #78C88C;">storage</span>
+                    数据管理
+                </h3>
+                <div class="text-xs text-gray-600 mb-3">自动备份、手动备份和恢复您的零花钱记录</div>
+            </div>
+
+            <!-- 备份功能 -->
+            <div class="mb-6">
+                <h4 class="text-md font-medium text-gray-700 mb-3">
+                    <span class="material-icons text-md mr-1" style="color: #78C88C;">backup</span>
+                    自动备份
+                </h4>
+                <div class="bg-green-50 rounded-lg p-3 mb-3">
+                    <div class="flex items-center text-sm text-green-800">
+                        <span class="material-icons text-lg mr-2">check_circle</span>
+                        <span>自动备份已启用，每天自动备份数据到本地存储</span>
+                    </div>
+                    <div class="text-xs text-green-700 mt-1 ml-7">
+                        保留最近30天的备份记录
+                    </div>
                 </div>
+                
+                <div class="mb-3">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">历史备份</label>
+                    <div id="backupList" class="space-y-2 max-h-40 overflow-y-auto">
+                        <div class="text-center text-gray-500 py-4">
+                            <p class="text-sm">加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 手动备份和恢复功能 -->
+            <div class="grid grid-cols-1 gap-4">
                 <div>
-                    <h4 class="font-medium mb-2"><span class="emoji-icon">📋</span>生成文本备份</h4>
-                    <button id="generateBackupButton" class="w-full py-2 bg-blue-500 text-white rounded-lg">点击复制当前数据</button>
+                    <h4 class="text-md font-medium text-gray-700 mb-3">
+                        <span class="material-icons text-md mr-1" style="color: #78C88C;">content_copy</span>
+                        手动备份
+                    </h4>
+                    <div class="bg-blue-50 rounded-lg p-3 mb-3">
+                        <div class="text-sm text-blue-800 mb-2">
+                            <span class="material-icons text-lg mr-2 align-middle">info</span>
+                            生成备份数据文本，可复制保存到备忘录或其他地方
+                        </div>
+                        <div class="text-xs text-blue-700">
+                            建议定期备份数据，防止意外丢失
+                        </div>
+                    </div>
+                    <button id="generateBackupButton" class="w-full py-2 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg shadow-md transition-all" data-testid="generate-backup-button">
+                        <span class="material-icons text-lg mr-2">content_copy</span>
+                        生成备份数据
+                    </button>
                 </div>
-                <hr>
+                
                 <div>
-                    <h4 class="font-medium mb-2"><span class="emoji-icon">🔙</span>从文本恢复</h4>
-                    <textarea id="restoreDataText" class="w-full p-2 border rounded-lg text-xs font-mono mb-2" rows="4" placeholder="粘贴之前备份的数据..."></textarea>
-                    <button id="restoreDataButton" class="w-full py-2 bg-orange-500 text-white rounded-lg">覆盖并恢复数据</button>
+                    <h4 class="text-md font-medium text-gray-700 mb-3">
+                        <span class="material-icons text-md mr-1" style="color: #78C88C;">restore</span>
+                        数据恢复
+                    </h4>
+                    <div class="bg-orange-50 rounded-lg p-3 mb-3">
+                        <div class="text-sm text-orange-800 mb-2">
+                            <span class="material-icons text-lg mr-2 align-middle">warning</span>
+                            粘贴备份数据文本，将覆盖当前所有数据
+                        </div>
+                        <div class="text-xs text-orange-700">
+                            请确保备份数据的格式正确
+                        </div>
+                    </div>
+                    <textarea id="restoreDataText" class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm font-mono" rows="4" placeholder="请粘贴完整的备份数据文本..." data-testid="restore-data-text"></textarea>
+                    <button id="restoreDataButton" class="w-full mt-2 py-2 px-4 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg shadow-md transition-all" data-testid="restore-data-button">
+                        <span class="material-icons text-lg mr-2">restore</span>
+                        恢复数据
+                    </button>
                 </div>
-                <div>
-                    <h4 class="font-medium mb-2 text-sm text-gray-500">最近系统自动备份历史：</h4>
-                    <div id="backupList" class="space-y-2 text-sm"></div>
-                </div>
+            </div>
+        </div>
+
+        </div>
+
+    <!-- 等级对照表浮层 -->
+    <div id="levelModal" class="level-modal-overlay">
+        <div class="level-modal-content">
+            <div class="level-modal-header">
+                <h3 class="level-modal-title">
+                    <span class="material-icons">emoji_events</span>
+                    等级称号对照表
+                </h3>
+                <button class="level-modal-close" id="levelModalClose">
+                    <span class="material-icons">close</span>
+                </button>
+            </div>
+            <div class="level-modal-body">
+                <table class="level-table">
+                    <thead>
+                        <tr>
+                            <th>等级范围</th>
+                            <th>称号</th>
+                        </tr>
+                    </thead>
+                    <tbody id="levelTableBody">
+                        <!-- 等级数据将通过JavaScript动态生成 -->
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 
-    <div id="levelModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="bg-green-500 text-white p-4 rounded-t-16 text-center font-bold relative">
-                <span class="emoji-icon">🏆</span>称号对照表
-                <button id="levelModalClose" class="absolute right-4 top-4">❌</button>
+    <!-- 删除确认浮层 -->
+    <div id="deleteConfirmModal" class="delete-confirm-modal-overlay">
+        <div class="delete-confirm-modal-content">
+            <div class="delete-confirm-modal-header">
+                <h3 class="delete-confirm-modal-title">
+                    <span class="material-icons">warning</span>
+                    确认删除记录
+                </h3>
+                <button class="delete-confirm-modal-close" id="deleteConfirmClose">
+                    <span class="material-icons">close</span>
+                </button>
             </div>
-            <div class="p-4"><table class="w-full text-sm text-left"><tbody id="levelTableBody"></tbody></table></div>
-        </div>
-    </div>
-
-    <div id="deleteConfirmModal" class="modal-overlay">
-        <div class="modal-content p-6">
-            <h3 class="text-lg font-bold text-red-600 mb-2"><span class="emoji-icon">⚠️</span>确认删除</h3>
-            <p class="text-sm text-gray-600 mb-4">删除后将无法恢复，系统会根据新历史重新计算余额。</p>
-            <div id="deleteRecordInfo" class="bg-gray-50 p-3 rounded mb-4 text-sm"></div>
-            <div class="flex gap-2">
-                <button id="confirmDeleteBtn" class="flex-1 bg-red-500 text-white py-2 rounded">删除</button>
-                <button id="cancelDeleteBtn" class="flex-1 bg-gray-400 text-white py-2 rounded">取消</button>
+            <div class="delete-confirm-modal-body">
+                <div class="delete-confirm-warning">
+                    <p class="warning-text">⚠️ 确认要删除这条消费记录吗？</p>
+                    <p class="warning-detail">删除后将无法恢复，相关的发放记录也会重新计算</p>
+                </div>
+                <div class="delete-confirm-record-info" id="deleteRecordInfo">
+                    <!-- 记录信息将通过JavaScript动态生成 -->
+                </div>
+                <div class="delete-confirm-actions">
+                    <button id="confirmDeleteBtn" class="confirm-delete-btn">
+                        <span class="material-icons">delete</span>
+                        确认删除
+                    </button>
+                    <button id="cancelDeleteBtn" class="cancel-delete-btn">
+                        <span class="material-icons">close</span>
+                        取消
+                    </button>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
-        class PocketMoneyManager {
-            constructor(){ this.baseAmount=this.loadBaseAmount(); this.startDate=this.loadStartDate(); this.giveRecords=this.loadGiveRecords(); this.spendRecords=this.loadSpendRecords(); this.currentPage=1; this.itemsPerPage=6; this.monthStatsPage=1; this.monthStatsPerPage=6; this.currentLevel=1; this.previousLevel=1; this.pendingDeleteId=null; this.init(); }
-            init(){ this.bindEvents(); this.setDefaultDates(); this.updateDisplay(); this.updateGiveStats(); this.updateLevelDisplay(); this.updateMonthStats(); this.setupAutoBackup(); this.performAutoGiveOnLoad(); }
-            performAutoGiveOnLoad(){ if(!this.startDate)return; setTimeout(()=>{const newRecords=this.generateGiveRecords({startDate:this.startDate,clearExisting:false,source:'auto'}); if(newRecords.length>0){this.updateDisplay();this.updateGiveStats();this.updateLevelDisplay(); this.showMessage(`自动发放完成，新增 ${newRecords.length} 条记录`);}},500);}
-            setupAutoBackup(){ const today=new Date().toISOString().split('T')[0]; const lastBackup=localStorage.getItem('pocketMoneyLastBackupDate'); if(lastBackup!==today){this.saveBackup(); localStorage.setItem('pocketMoneyLastBackupDate',today);} const origGive=this.saveGiveRecords.bind(this); const origSpend=this.saveSpendRecords.bind(this); const origStart=this.saveStartDate.bind(this); this.saveGiveRecords=()=>{origGive(); this.saveBackup();}; this.saveSpendRecords=()=>{origSpend(); this.saveBackup();}; this.saveStartDate=(d)=>{origStart(d); this.saveBackup();};}
-            loadBaseAmount(){return parseFloat(localStorage.getItem('pocketMoneyBaseAmount'))||6;}
-            loadStartDate(){return localStorage.getItem('pocketMoneyStartDate');}
-            saveStartDate(date){localStorage.setItem('pocketMoneyStartDate',date); this.startDate=date;}
-            loadGiveRecords(){const s=localStorage.getItem('pocketMoneyGiveRecords'); return s?JSON.parse(s):[];}
-            loadSpendRecords(){const s=localStorage.getItem('pocketMoneySpendRecords'); return s?JSON.parse(s):[];}
-            saveGiveRecords(){localStorage.setItem('pocketMoneyGiveRecords',JSON.stringify(this.giveRecords));}
-            saveSpendRecords(){localStorage.setItem('pocketMoneySpendRecords',JSON.stringify(this.spendRecords));}
-            setDefaultDates(){const today=new Date().toISOString().split('T')[0]; document.getElementById('spendDate').value=today; if(this.startDate)document.getElementById('startDate').value=this.startDate;}
-            
-            bindEvents(){
-                const tabs=['stats','history','spend','auto','data'];
-                tabs.forEach(tab=>{
-                    document.getElementById(tab+'Tab').addEventListener('click',()=>{
-                        tabs.forEach(t=>{
-                            document.getElementById(t+'Tab').classList.remove('active');
-                            document.getElementById(t+'Section').classList.add('hidden');
-                        });
-                        document.getElementById(tab+'Tab').classList.add('active');
-                        document.getElementById(tab+'Section').classList.remove('hidden');
-                        if(tab==='stats')this.updateMonthStats();
-                        if(tab==='history'){this.updateHistory('all'); this.updateNextWeekAmount();}
-                        if(tab==='data')this.updateBackupList();
-                    });
-                });
-                
-                document.getElementById('generateButton').addEventListener('click',()=>this.handleGenerateRecords());
-                document.getElementById('saveSpendButton').addEventListener('click',()=>this.saveSpendRecord());
-                document.getElementById('historyFilter').addEventListener('change',(e)=>{this.currentPage=1; this.updateHistory(e.target.value);});
-                document.getElementById('prevPage').addEventListener('click',()=>{if(this.currentPage>1){this.currentPage--; this.updateHistory(document.getElementById('historyFilter').value);}});
-                document.getElementById('nextPage').addEventListener('click',()=>{this.currentPage++; this.updateHistory(document.getElementById('historyFilter').value);});
-                document.getElementById('monthStatsPrevPage').addEventListener('click',()=>{if(this.monthStatsPage>1){this.monthStatsPage--; this.updateMonthStats();}});
-                document.getElementById('monthStatsNextPage').addEventListener('click',()=>{this.monthStatsPage++; this.updateMonthStats();});
-                document.getElementById('generateBackupButton').addEventListener('click',()=>this.generateTextBackup());
-                document.getElementById('restoreDataButton').addEventListener('click',()=>this.restoreFromText());
-                document.getElementById('levelText').addEventListener('click',()=>this.showLevelModal());
-                document.getElementById('levelModalClose').addEventListener('click',()=>this.closeLevelModal());
-                document.getElementById('baseAmount').addEventListener('input',(e)=>this.handleBaseAmountChange(e.target.value));
-                
-                this.updateBaseAmountDisplay();
-            }
+class PocketMoneyManager{constructor(){this.baseAmount=this.loadBaseAmount();this.startDate=this.loadStartDate();this.giveRecords=this.loadGiveRecords();this.spendRecords=this.loadSpendRecords();this.currentPage=1;this.itemsPerPage=6;this.monthStatsPage=1;this.monthStatsPerPage=6;this.currentLevel=1;this.previousLevel=1;this.pendingDeleteId=null;this.init();}
+init(){this.bindEvents();this.setDefaultDates();this.updateDisplay();this.updateGiveStats();this.updateLevelDisplay();this.updateMonthStats();this.setupAutoBackup();this.performAutoGiveOnLoad();}
+performAutoGiveOnLoad(){if(!this.startDate){return;}
+setTimeout(()=>{const newRecords=this.generateGiveRecords({startDate:this.startDate,clearExisting:false,source:'auto'});if(newRecords.length>0){this.updateDisplay();this.updateGiveStats();this.updateLevelDisplay();if(newRecords.some(record=>{const recordDate=new Date(record.date);const today=new Date();today.setHours(0,0,0,0);return recordDate<=today;})){this.showMessage(`自动发放完成，新增 ${newRecords.length} 条记录`);}}},500);}
+setupAutoBackup(){const today=new Date().toISOString().split('T')[0];const lastBackupKey='pocketMoneyLastBackupDate';const lastBackup=localStorage.getItem(lastBackupKey);if(lastBackup!==today){this.saveBackup();localStorage.setItem(lastBackupKey,today);}
+const originalSaveGiveRecords=this.saveGiveRecords.bind(this);const originalSaveSpendRecords=this.saveSpendRecords.bind(this);const originalSaveStartDate=this.saveStartDate.bind(this);this.saveGiveRecords=()=>{originalSaveGiveRecords();this.saveBackup();};this.saveSpendRecords=()=>{originalSaveSpendRecords();this.saveBackup();};this.saveStartDate=(date)=>{originalSaveStartDate(date);this.saveBackup();};}
+loadBaseAmount(){const saved=localStorage.getItem('pocketMoneyBaseAmount');return saved?parseFloat(saved):6;}
+loadStartDate(){const saved=localStorage.getItem('pocketMoneyStartDate');return saved?saved:null;}
+saveStartDate(date){localStorage.setItem('pocketMoneyStartDate',date);this.startDate=date;}
+loadGiveRecords(){const saved=localStorage.getItem('pocketMoneyGiveRecords');return saved?JSON.parse(saved):[];}
+loadSpendRecords(){const saved=localStorage.getItem('pocketMoneySpendRecords');return saved?JSON.parse(saved):[];}
+saveGiveRecords(){localStorage.setItem('pocketMoneyGiveRecords',JSON.stringify(this.giveRecords));}
+saveSpendRecords(){localStorage.setItem('pocketMoneySpendRecords',JSON.stringify(this.spendRecords));}
+setDefaultDates(){const today=new Date().toISOString().split('T')[0];document.getElementById('spendDate').value=today;if(this.startDate){document.getElementById('startDate').value=this.startDate;}}
+bindEvents(){const statsTab=document.getElementById('statsTab');const historyTab=document.getElementById('historyTab');const spendTab=document.getElementById('spendTab');const autoTab=document.getElementById('autoTab');const dataTab=document.getElementById('dataTab');const statsSection=document.getElementById('statsSection');const historySection=document.getElementById('historySection');const spendSection=document.getElementById('spendSection');const autoSection=document.getElementById('autoSection');const dataSection=document.getElementById('dataSection');const generateButton=document.getElementById('generateButton');const saveSpendButton=document.getElementById('saveSpendButton');const historyFilter=document.getElementById('historyFilter');const prevPage=document.getElementById('prevPage');const nextPage=document.getElementById('nextPage');const monthStatsPrevPage=document.getElementById('monthStatsPrevPage');const monthStatsNextPage=document.getElementById('monthStatsNextPage');const generateBackupButton=document.getElementById('generateBackupButton');const restoreDataButton=document.getElementById('restoreDataButton');const restoreDataText=document.getElementById('restoreDataText');const baseAmountInput=document.getElementById('baseAmount');statsTab.addEventListener('click',()=>{statsTab.classList.add('active');historyTab.classList.remove('active');spendTab.classList.remove('active');autoTab.classList.remove('active');dataTab.classList.remove('active');statsSection.classList.remove('hidden');historySection.classList.add('hidden');spendSection.classList.add('hidden');autoSection.classList.add('hidden');dataSection.classList.add('hidden');this.updateMonthStats();});historyTab.addEventListener('click',()=>{historyTab.classList.add('active');statsTab.classList.remove('active');spendTab.classList.remove('active');autoTab.classList.remove('active');dataTab.classList.remove('active');historySection.classList.remove('hidden');statsSection.classList.add('hidden');spendSection.classList.add('hidden');autoSection.classList.add('hidden');dataSection.classList.add('hidden');this.updateHistory('all');this.updateNextWeekAmount();});spendTab.addEventListener('click',()=>{spendTab.classList.add('active');statsTab.classList.remove('active');historyTab.classList.remove('active');autoTab.classList.remove('active');dataTab.classList.remove('active');spendSection.classList.remove('hidden');statsSection.classList.add('hidden');historySection.classList.add('hidden');autoSection.classList.add('hidden');dataSection.classList.add('hidden');});autoTab.addEventListener('click',()=>{autoTab.classList.add('active');statsTab.classList.remove('active');historyTab.classList.remove('active');spendTab.classList.remove('active');dataTab.classList.remove('active');autoSection.classList.remove('hidden');statsSection.classList.add('hidden');historySection.classList.add('hidden');spendSection.classList.add('hidden');dataSection.classList.add('hidden');});dataTab.addEventListener('click',()=>{dataTab.classList.add('active');statsTab.classList.remove('active');historyTab.classList.remove('active');spendTab.classList.remove('active');autoTab.classList.remove('active');dataSection.classList.remove('hidden');statsSection.classList.add('hidden');historySection.classList.add('hidden');spendSection.classList.add('hidden');autoSection.classList.add('hidden');this.updateBackupList();});generateButton.addEventListener('click',()=>{this.handleGenerateRecords();});saveSpendButton.addEventListener('click',()=>{this.saveSpendRecord();});historyFilter.addEventListener('change',(e)=>{this.currentPage=1;this.updateHistory(e.target.value);});prevPage.addEventListener('click',()=>{if(this.currentPage>1){this.currentPage--;this.updateHistory(historyFilter.value);}});nextPage.addEventListener('click',()=>{this.currentPage++;this.updateHistory(historyFilter.value);});monthStatsPrevPage.addEventListener('click',()=>{if(this.monthStatsPage>1&&monthStatsPrevPage){this.monthStatsPage--;this.updateMonthStats();}});monthStatsNextPage.addEventListener('click',()=>{if(monthStatsNextPage){this.monthStatsPage++;this.updateMonthStats();}});generateBackupButton.addEventListener('click',()=>{this.generateTextBackup();});restoreDataButton.addEventListener('click',()=>{this.restoreFromText();});const levelText=document.getElementById('levelText');levelText.addEventListener('click',()=>{this.showLevelModal();});const levelModalClose=document.getElementById('levelModalClose');const levelModal=document.getElementById('levelModal');levelModalClose.addEventListener('click',(e)=>{e.stopPropagation();this.closeLevelModal();});levelModal.addEventListener('click',(e)=>{if(e.target===levelModal){this.closeLevelModal();}});document.addEventListener('keydown',(e)=>{if(e.key==='Escape'&&levelModal.classList.contains('show')){this.closeLevelModal();}});baseAmountInput.addEventListener('input',(e)=>{this.handleBaseAmountChange(e.target.value);});this.updateBaseAmountDisplay();}
+handleBaseAmountChange(value){const newBaseAmount=parseFloat(value);if(isNaN(newBaseAmount)||newBaseAmount<1||newBaseAmount>100){this.showMessage('请输入有效的初始发放金额（1-100元）');return;}
+if(newBaseAmount!==this.baseAmount){this.baseAmount=newBaseAmount;this.saveBaseAmount();this.updateRuleDescription();this.showMessage(`初始发放金额已更新为 ¥${newBaseAmount}`);}}
+saveBaseAmount(){localStorage.setItem('pocketMoneyBaseAmount',this.baseAmount.toString());}
+updateBaseAmountDisplay(){const baseAmountInput=document.getElementById('baseAmount');if(baseAmountInput){baseAmountInput.value=this.baseAmount;}
+this.updateRuleDescription();}
+updateRuleDescription(){const ruleFirstThreshold=document.getElementById('ruleFirstThreshold');const ruleFirstAmount=document.getElementById('ruleFirstAmount');const ruleSecondThreshold=document.getElementById('ruleSecondThreshold');const ruleSecondAmount=document.getElementById('ruleSecondAmount');const ruleThirdThreshold=document.getElementById('ruleThirdThreshold');const ruleThirdAmount=document.getElementById('ruleThirdAmount');if(ruleFirstThreshold)ruleFirstThreshold.textContent=this.baseAmount;if(ruleFirstAmount)ruleFirstAmount.textContent=this.baseAmount;if(ruleSecondAmount)ruleSecondAmount.textContent=this.baseAmount+1;if(ruleSecondThreshold)ruleSecondThreshold.textContent=this.baseAmount+(this.baseAmount+1);if(ruleThirdAmount)ruleThirdAmount.textContent=this.baseAmount+2;if(ruleThirdThreshold)ruleThirdThreshold.textContent=this.baseAmount+(this.baseAmount+1)+(this.baseAmount+2);}
+generateGiveRecords(options={}){const{startDate:inputStartDate=null,endDate:inputEndDate=null,clearExisting=false,source='auto'}=options;const startDate=inputStartDate||this.startDate;if(!startDate){if(clearExisting){this.giveRecords=[];this.saveGiveRecords();}
+return[];}
+const today=new Date();const endDate=inputEndDate||today;endDate.setHours(23,59,59,999);if(clearExisting){this.giveRecords=[];}
+const allTimePoints=this.getAllTimePoints(startDate,endDate);const newRecords=[];let runningBalance=0;for(const timePoint of allTimePoints){const{date,type,data}=timePoint;if(type==='spend'){runningBalance-=data.amount;}else if(type==='monday'){const giveAmount=this.calculateGiveAmount(runningBalance);const record={id:Date.now()+Math.random(),date:date,amount:giveAmount,note:this.generateGiveNote(source,runningBalance,date),autoGenerated:source!=='manual',timestamp:new Date().toISOString(),source:source};newRecords.push(record);runningBalance+=giveAmount;}}
+if(newRecords.length>0){if(clearExisting){this.giveRecords=newRecords;}else{const existingDates=new Set(this.giveRecords.map(r=>r.date));const uniqueNewRecords=newRecords.filter(r=>!existingDates.has(r.date));this.giveRecords.push(...uniqueNewRecords);}
+this.giveRecords.sort((a,b)=>new Date(a.date)-new Date(b.date));this.saveGiveRecords();}
+return newRecords;}
+getAllTimePoints(startDate,endDate){const timePoints=[];const start=new Date(startDate);const end=new Date(endDate);let currentDate=new Date(start);while(currentDate<=end){if(currentDate.getDay()===1){const dateStr=currentDate.toISOString().split('T')[0];timePoints.push({date:dateStr,type:'monday',timestamp:currentDate.getTime()});}
+currentDate.setDate(currentDate.getDate()+1);}
+this.spendRecords.forEach(record=>{const recordDate=new Date(record.date);if(recordDate>=start&&recordDate<=end){timePoints.push({date:record.date,type:'spend',data:record,timestamp:recordDate.getTime()});}});timePoints.sort((a,b)=>{if(a.date===b.date){return a.type==='spend'?-1:1;}
+return a.timestamp-b.timestamp;});return timePoints;}
+generateGiveNote(source,balance,date){const sourceText={'auto':'自动发放','restore':'恢复计算','manual':'手动发放'}[source]||'自动发放';return`${sourceText} - 余额¥${balance.toFixed(2)}`;}
+calculateBalanceAtDate(targetDate){const targetDateStr=targetDate.toISOString().split('T')[0];const totalGiven=this.giveRecords.filter(record=>record.date<=targetDateStr).reduce((sum,record)=>sum+record.amount,0);const totalSpent=this.spendRecords.filter(record=>record.date<=targetDateStr).reduce((sum,record)=>sum+record.amount,0);return totalGiven-totalSpent;}
+calculateBalanceBeforeDate(targetDate){const targetDateStr=targetDate.toISOString().split('T')[0];const totalGiven=this.giveRecords.filter(record=>record.date<targetDateStr).reduce((sum,record)=>sum+record.amount,0);const totalSpent=this.spendRecords.filter(record=>record.date<targetDateStr).reduce((sum,record)=>sum+record.amount,0);return totalGiven-totalSpent;}
+handleGenerateRecords(){const startDateInput=document.getElementById('startDate').value;if(!startDateInput){this.showMessage('请选择开始发放日期');return;}
+this.saveStartDate(startDateInput);const newRecords=this.generateGiveRecords({startDate:startDateInput,clearExisting:true,source:'auto'});if(newRecords.length>0){this.currentPage=1;this.updateDisplay();this.updateGiveStats();this.showMessage(`成功生成 ${newRecords.length} 条发放记录！`);setTimeout(()=>this.updateLevelDisplay(),100);}else{this.showMessage('没有需要生成的发放记录');}}
+recalculateGiveRecordsAfterDate(spendDate){const spendDateObj=new Date(spendDate);const today=new Date();today.setHours(23,59,59,999);const affectedRecords=this.giveRecords.filter(record=>{const recordDate=new Date(record.date);return recordDate>spendDateObj&&recordDate<=today&&record.autoGenerated;});if(affectedRecords.length===0){return;}
+this.giveRecords=this.giveRecords.filter(record=>{const recordDate=new Date(record.date);return!(recordDate>spendDateObj&&recordDate<=today&&record.autoGenerated);});const newRecords=this.generateGiveRecords({startDate:this.startDate,endDate:today,clearExisting:false,source:'auto'});if(newRecords.length>0){this.updateDisplay();this.updateGiveStats();}}
+getThresholds(){const thresholds=[];let sum=0;for(let i=0;i<100;i++){sum+=this.baseAmount+i;thresholds.push(sum);}
+return thresholds;}
+calculateGiveAmount(balance){const thresholds=this.getThresholds();for(let i=0;i<thresholds.length;i++){if(balance<thresholds[i]){return this.baseAmount+i;}}
+return this.baseAmount+thresholds.length;}
+calculateNextWeekAmount(){const currentBalance=this.getCurrentBalance();return this.calculateGiveAmount(currentBalance);}
+updateNextWeekAmount(){const nextWeekAmountElement=document.getElementById('nextWeekAmount');if(nextWeekAmountElement){const nextWeekAmount=this.calculateNextWeekAmount();nextWeekAmountElement.textContent=`¥${nextWeekAmount.toFixed(2)}`;}}
+getCurrentBalance(){const totalGiven=this.giveRecords.reduce((sum,record)=>sum+record.amount,0);const totalSpent=this.spendRecords.reduce((sum,record)=>sum+record.amount,0);return totalGiven-totalSpent;}
+getTotalStats(){const totalGiven=this.giveRecords.reduce((sum,record)=>sum+record.amount,0);const totalSpent=this.spendRecords.reduce((sum,record)=>sum+record.amount,0);return{totalGiven,totalSpent};}
+getMonthStats(){const now=new Date();const currentMonth=now.getMonth();const currentYear=now.getFullYear();const monthGiven=this.giveRecords.filter(record=>{const recordDate=new Date(record.date);return recordDate.getMonth()===currentMonth&&recordDate.getFullYear()===currentYear;}).reduce((sum,record)=>sum+record.amount,0);const monthSpent=this.spendRecords.filter(record=>{const recordDate=new Date(record.date);return recordDate.getMonth()===currentMonth&&recordDate.getFullYear()===currentYear;}).reduce((sum,record)=>sum+record.amount,0);return{monthGiven,monthSpent};}
+getAllMonthStats(){const monthStats={};const allDates=[];this.giveRecords.forEach(record=>allDates.push(record.date));this.spendRecords.forEach(record=>allDates.push(record.date));allDates.forEach(dateStr=>{const date=new Date(dateStr);const year=date.getFullYear();const month=date.getMonth();const key=`${year}-${month.toString().padStart(2, '0')}`;if(!monthStats[key]){monthStats[key]={year:year,month:month,monthName:`${year}年${(month + 1).toString().padStart(2, '0')}月`,given:0,spent:0};}});this.giveRecords.forEach(record=>{const date=new Date(record.date);const year=date.getFullYear();const month=date.getMonth();const key=`${year}-${month.toString().padStart(2, '0')}`;if(monthStats[key]){monthStats[key].given+=record.amount;}});this.spendRecords.forEach(record=>{const date=new Date(record.date);const year=date.getFullYear();const month=date.getMonth();const key=`${year}-${month.toString().padStart(2, '0')}`;if(monthStats[key]){monthStats[key].spent+=record.amount;}});return Object.values(monthStats).sort((a,b)=>{if(a.year!==b.year)return b.year-a.year;return b.month-a.month;});}
+saveSpendRecord(){const spendDate=document.getElementById('spendDate').value;const spendAmount=parseFloat(document.getElementById('spendAmount').value);const spendCategory=document.getElementById('spendCategory').value;const spendNote=document.getElementById('spendNote').value;if(!spendDate){this.showMessage('请选择消费日期');return;}
+if(!spendAmount||spendAmount<=0){this.showMessage('请输入有效的消费金额');return;}
+const record={id:Date.now(),date:spendDate,amount:spendAmount,category:spendCategory,note:spendNote,timestamp:new Date().toISOString()};this.spendRecords.push(record);this.spendRecords.sort((a,b)=>new Date(a.date)-new Date(b.date));this.saveSpendRecords();this.recalculateGiveRecordsAfterDate(spendDate);this.updateDisplay();this.resetSpendForm();this.showMessage('消费记录保存成功！');setTimeout(()=>this.updateLevelDisplay(),100);}
+updateGiveStats(){const totalGiveCount=this.giveRecords.length;const totalGiveAmount=this.giveRecords.reduce((sum,record)=>sum+record.amount,0);document.getElementById('totalGiveCount').textContent=totalGiveCount;document.getElementById('totalGiveAmount').textContent=`¥${totalGiveAmount.toFixed(2)}`;}
+resetSpendForm(){document.getElementById('spendAmount').value='10';document.getElementById('spendCategory').value='food';document.getElementById('spendNote').value='';}
+updateDisplay(){const currentBalance=this.getCurrentBalance();const{totalGiven,totalSpent}=this.getTotalStats();document.getElementById('totalAmount').textContent=`¥${currentBalance.toFixed(2)}`;document.getElementById('totalGiven').textContent=`¥${totalGiven.toFixed(2)}`;document.getElementById('totalSpent').textContent=`¥${totalSpent.toFixed(2)}`;this.updateLevelDisplay();this.updateNextWeekAmount();}
+updateHistory(filter='all'){const historyList=document.getElementById('historyList');const pagination=document.getElementById('pagination');const prevPage=document.getElementById('prevPage');const nextPage=document.getElementById('nextPage');const pageInfo=document.getElementById('pageInfo');let allRecords=[];this.giveRecords.forEach(record=>{allRecords.push({...record,type:'give',icon:'payments',color:'green',label:'发放'});});this.spendRecords.forEach(record=>{allRecords.push({...record,type:'spend',icon:'shopping_cart',color:'red',label:'消费'});});if(filter!=='all'){allRecords=allRecords.filter(record=>record.type===filter);}
+allRecords.sort((a,b)=>new Date(b.date)-new Date(a.date));if(allRecords.length===0){historyList.innerHTML=`
+                <div class="text-center text-gray-500 py-4">
+                    <span class="material-icons text-2xl mb-2">receipt_long</span>
+                    <p class="text-sm">暂无记录</p>
+                </div>
+            `;pagination.classList.add('hidden');return;}
+const totalPages=Math.ceil(allRecords.length/this.itemsPerPage);const startIndex=(this.currentPage-1)*this.itemsPerPage;const endIndex=startIndex+this.itemsPerPage;const currentRecords=allRecords.slice(startIndex,endIndex);historyList.innerHTML=currentRecords.map(record=>{const recordDate=new Date(record.date);const balanceBefore=this.calculateBalanceBeforeDate(recordDate);const balanceAfter=this.calculateBalanceAtDate(recordDate);const categoryText=record.category?this.getCategoryText(record.category):'';const noteText=record.note?` - ${record.note}`:'';const categoryDisplay=categoryText?` | ${categoryText}`:'';const deleteButton=record.type==='spend'?`
+                <button class="delete-btn ml-2 text-red-500 hover:text-red-700" data-id="${record.id}" data-testid="delete-${record.id}">
+                    <span class="material-icons text-sm">delete</span>
+                </button>
+            `:'';return`
+                <div class="history-row bg-gray-50 rounded-lg p-3">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center text-sm font-medium text-gray-800">
+                            <span class="material-icons text-lg mr-2 text-${record.color}-600">${record.icon}</span>
+                            ${record.label}
+                            ${deleteButton}
+                        </div>
+                        <div class="text-right">
+                            <div class="text-sm font-semibold text-${record.color}-600">
+                                ${record.type === 'give' ? '+' : '-'}¥${record.amount.toFixed(2)}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-xs text-gray-600 mb-1">
+                        ${record.date}${categoryDisplay}${noteText}
+                    </div>
+                    <div class="flex justify-between items-center text-xs">
+                        <div class="text-gray-500">
+                            交易前: ¥${balanceBefore.toFixed(2)}
+                        </div>
+                        <div class="font-medium text-gray-700">
+                            交易后: ¥${balanceAfter.toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+            `;}).join('');if(totalPages>1){pagination.classList.remove('hidden');prevPage.disabled=this.currentPage===1;nextPage.disabled=this.currentPage===totalPages;pageInfo.textContent=`第 ${this.currentPage} 页 / 共 ${totalPages} 页`;}else{pagination.classList.add('hidden');}
+this.bindDeleteEvents();}
+updateMonthStats(){const monthStatsList=document.getElementById('monthStatsList');const monthStatsPagination=document.getElementById('monthStatsPagination');const monthStatsPrevPage=document.getElementById('monthStatsPrevPage');const monthStatsNextPage=document.getElementById('monthStatsNextPage');const monthStatsPageInfo=document.getElementById('monthStatsPageInfo');const monthStats=this.getAllMonthStats();if(!monthStatsList){return;}
+if(monthStats.length===0){monthStatsList.innerHTML=`
+                <div class="text-center text-gray-500 py-8">
+                    <span class="material-icons text-2xl mb-2">bar_chart</span>
+                    <p class="text-sm">暂无统计数据</p>
+                </div>
+            `;if(monthStatsPagination){monthStatsPagination.classList.add('hidden');}
+return;}
+const totalPages=Math.ceil(monthStats.length/this.monthStatsPerPage);const startIndex=(this.monthStatsPage-1)*this.monthStatsPerPage;const endIndex=startIndex+this.monthStatsPerPage;const currentMonthStats=monthStats.slice(startIndex,endIndex);monthStatsList.innerHTML=currentMonthStats.map(stat=>{const netAmount=stat.given-stat.spent;const netColor=netAmount>=0?'green':'red';const netText=netAmount>=0?'结余':'超支';return`
+                <div class="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors">
+                    <div class="flex justify-between items-center mb-3">
+                        <div class="text-base font-semibold text-gray-800">
+                            ${stat.monthName}
+                        </div>
+                        <div class="text-sm font-medium text-${netColor}-600">
+                            ${netText} ¥${Math.abs(netAmount).toFixed(2)}
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-green-600">
+                                +¥${stat.given.toFixed(2)}
+                            </div>
+                            <div class="text-xs text-gray-500">发放金额</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="text-lg font-semibold text-red-600">
+                                -¥${stat.spent.toFixed(2)}
+                            </div>
+                            <div class="text-xs text-gray-500">消费金额</div>
+                        </div>
+                    </div>
+                </div>
+            `;}).join('');if(monthStatsPagination&&monthStatsPrevPage&&monthStatsNextPage&&monthStatsPageInfo){if(totalPages>1){monthStatsPagination.classList.remove('hidden');monthStatsPrevPage.disabled=this.monthStatsPage===1;monthStatsNextPage.disabled=this.monthStatsPage===totalPages;monthStatsPageInfo.textContent=`第 ${this.monthStatsPage} 页 / 共 ${totalPages} 页`;}else{monthStatsPagination.classList.add('hidden');}}}
+bindDeleteEvents(){const deleteButtons=document.querySelectorAll('.delete-btn');deleteButtons.forEach(button=>{button.addEventListener('click',(e)=>{const id=parseInt(e.currentTarget.dataset.id);this.showDeleteConfirm(id);});});const deleteConfirmClose=document.getElementById('deleteConfirmClose');const cancelDeleteBtn=document.getElementById('cancelDeleteBtn');const confirmDeleteBtn=document.getElementById('confirmDeleteBtn');const deleteConfirmModal=document.getElementById('deleteConfirmModal');if(deleteConfirmClose){deleteConfirmClose.addEventListener('click',()=>{this.hideDeleteConfirm();});}
+if(cancelDeleteBtn){cancelDeleteBtn.addEventListener('click',()=>{this.hideDeleteConfirm();});}
+if(confirmDeleteBtn){confirmDeleteBtn.addEventListener('click',()=>{this.confirmDelete();});}
+if(deleteConfirmModal){deleteConfirmModal.addEventListener('click',(e)=>{if(e.target===deleteConfirmModal){this.hideDeleteConfirm();}});}}
+showDeleteConfirm(id){const record=this.spendRecords.find(r=>r.id===id);if(!record)return;this.pendingDeleteId=id;const recordInfo=document.getElementById('deleteRecordInfo');const categoryText=record.category?this.getCategoryText(record.category):'';const noteText=record.note||'';recordInfo.innerHTML=`
+            <div class="record-info-item">
+                <span class="record-info-label">消费日期：</span>
+                <span class="record-info-value">${record.date}</span>
+            </div>
+            <div class="record-info-item">
+                <span class="record-info-label">消费金额：</span>
+                <span class="record-info-value record-amount">¥${record.amount.toFixed(2)}</span>
+            </div>
+            ${categoryText ? `<div class="record-info-item"><span class="record-info-label">消费类型：</span><span class="record-info-value">${categoryText}</span></div>` : ''}
+            ${noteText ? `<div class="record-info-item"><span class="record-info-label">备注：</span><span class="record-info-value">${noteText}</span></div>` : ''}
+        `;const modal=document.getElementById('deleteConfirmModal');modal.classList.add('show');}
+hideDeleteConfirm(){const modal=document.getElementById('deleteConfirmModal');modal.classList.remove('show');this.pendingDeleteId=null;}
+confirmDelete(){if(this.pendingDeleteId){this.deleteSpendRecord(this.pendingDeleteId);this.hideDeleteConfirm();}}
+deleteSpendRecord(id){const index=this.spendRecords.findIndex(record=>record.id===id);if(index!==-1){const deletedRecord=this.spendRecords[index];this.spendRecords.splice(index,1);this.saveSpendRecords();this.recalculateGiveRecordsAfterDate(deletedRecord.date);this.currentPage=1;this.updateDisplay();this.showMessage('消费记录已删除！');setTimeout(()=>this.updateLevelDisplay(),100);}}
+getCategoryText(category){const categories={food:'餐饮',toy:'玩具',book:'文具书籍',snack:'零食',other:'其他'};return categories[category]||category;}
+calculateYearEndPrediction(){const now=new Date();const currentYear=now.getFullYear();const yearEnd=new Date(currentYear,11,31);if(now>yearEnd){return this.getPiggyBankLevel(this.getCurrentBalance());}
+let remainingWeeks=0;let currentDate=new Date(now);currentDate.setDate(currentDate.getDate()+1);while(currentDate<=yearEnd){if(currentDate.getDay()===1){remainingWeeks++;}
+currentDate.setDate(currentDate.getDate()+1);}
+const currentNextWeekAmount=this.calculateNextWeekAmount();const yearEndNextWeekAmount=currentNextWeekAmount+remainingWeeks;const predictedLevel=Math.max(1,yearEndNextWeekAmount-this.baseAmount);return{level:predictedLevel,name:this.getLevelName(predictedLevel),icon:predictedLevel>=10?'diamond':'savings',min:0,max:0};}
+getLevelName(level){if(level<5)return'咖宝学徒';if(level<10)return'见习咖宝';if(level<15)return'极速先锋';if(level<20)return'特警卫士';if(level<25)return'重装巨人';if(level<30)return'传说召唤师';if(level<35)return'暴风统帅';if(level<40)return'晶钻领主';if(level<45)return'四变兽王';if(level<50)return'黄金战神';if(level<55)return'双星大元帅';if(level<60)return'银河霸主';return'时空创世神';}
+getPiggyBankLevelByTotalGiven(totalGiven){const originalRecords=[...this.giveRecords];this.giveRecords=[{amount:totalGiven,date:new Date().toISOString()}];const nextWeekAmount=this.calculateGiveAmount(totalGiven);this.giveRecords=originalRecords;const level=Math.max(1,nextWeekAmount-this.baseAmount);if(level<=2)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=4)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=6)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=8)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=10)return{level:level,name:this.getLevelName(level),icon:'diamond',min:0,max:0};return{level:level,name:this.getLevelName(level),icon:'auto_awesome',min:0,max:0};}
+getPiggyBankLevel(balance){const nextWeekAmount=this.calculateNextWeekAmount();const level=Math.max(1,nextWeekAmount-this.baseAmount);if(level<=2)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=4)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=6)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=8)return{level:level,name:this.getLevelName(level),icon:'savings',min:0,max:0};if(level<=10)return{level:level,name:this.getLevelName(level),icon:'diamond',min:0,max:0};return{level:level,name:this.getLevelName(level),icon:'auto_awesome',min:0,max:0};}
+updateLevelDisplay(){const currentBalance=this.getCurrentBalance();const levelInfo=this.getPiggyBankLevel(currentBalance);const yearEndPrediction=this.calculateYearEndPrediction();this.previousLevel=this.currentLevel;this.currentLevel=levelInfo.level;this.updateLevelIcons(levelInfo.level);const levelCurrentEl=document.getElementById('levelCurrent');const levelTextEl=document.getElementById('levelText');const yearEndLevelEl=document.getElementById('yearEndLevel');const yearEndTextEl=document.getElementById('yearEndText');if(levelCurrentEl)levelCurrentEl.textContent=`Lv.${levelInfo.level}`;if(levelTextEl)levelTextEl.textContent=levelInfo.name;if(yearEndLevelEl)yearEndLevelEl.textContent=`Lv.${yearEndPrediction.level} ${yearEndPrediction.name}`;if(yearEndTextEl){const levelDiff=yearEndPrediction.level-levelInfo.level;if(levelDiff>0){yearEndTextEl.textContent=`还可升${levelDiff}级`;}else if(levelDiff===0){yearEndTextEl.textContent='保持当前等级';}else{yearEndTextEl.textContent='已满级';}}
+if(this.currentLevel>this.previousLevel){this.playUpgradeAnimation();}}
+updateLevelIcons(currentLevel){const iconsContainer=document.getElementById('levelIcons');if(!iconsContainer){console.warn('Level icons container not found');return;}
+iconsContainer.innerHTML='';const totalStars=currentLevel;const moons=Math.floor(totalStars/5);const remainingStars=totalStars%5;const suns=Math.floor(moons/5);const remainingMoons=moons%5;for(let i=0;i<suns;i++){const icon=document.createElement('div');icon.className='level-icon sun active';icon.innerHTML='☀';icon.title=`太阳 (${(i + 1) * 25}级)`;iconsContainer.appendChild(icon);}
+for(let i=0;i<remainingMoons;i++){const icon=document.createElement('div');icon.className='level-icon moon active';icon.innerHTML='🌙';icon.title=`月亮 (${suns * 25 + (i + 1) * 5}级)`;iconsContainer.appendChild(icon);}
+for(let i=0;i<remainingStars;i++){const icon=document.createElement('div');icon.className='level-icon star active';icon.innerHTML='⭐';icon.title=`星星 (${suns * 25 + remainingMoons * 5 + (i + 1)}级)`;iconsContainer.appendChild(icon);}
+if(suns===0&&remainingMoons===0&&remainingStars===0){const icon=document.createElement('div');icon.className='level-icon star inactive';icon.innerHTML='⭐';icon.title='未开始';iconsContainer.appendChild(icon);}}
+playUpgradeAnimation(){const piggyBank=document.getElementById('piggyBank');const upgradeEffect=document.getElementById('upgradeEffect');const piggyBankContainer=document.getElementById('piggyBankContainer')||document.querySelector('.level-container');if(!piggyBank||!upgradeEffect){console.warn('Required elements for upgrade animation not found');return;}
+piggyBank.classList.add('upgrading');upgradeEffect.classList.remove('hidden');if(piggyBankContainer){this.createSparkles(piggyBankContainer);}
+const levelInfo=this.getPiggyBankLevel(this.getCurrentBalance());const nextWeekAmount=this.calculateNextWeekAmount();this.showMessage(`🎉 恭喜升级！当前级别${levelInfo.level}级，下周将获得${nextWeekAmount}元`);setTimeout(()=>{if(piggyBank)piggyBank.classList.remove('upgrading');if(upgradeEffect)upgradeEffect.classList.add('hidden');},800);}
+createSparkles(container){if(!container){console.warn('Container for sparkles not found');return;}
+const sparkleCount=8;const containerRect=container.getBoundingClientRect();for(let i=0;i<sparkleCount;i++){setTimeout(()=>{const sparkle=document.createElement('div');if(!sparkle)return;sparkle.className='sparkle';sparkle.innerHTML='<span class="material-icons">star</span>';const angle=(Math.PI*2*i)/sparkleCount;const radius=40;const x=Math.cos(angle)*radius;const y=Math.sin(angle)*radius;if(sparkle.style&&container&&container.appendChild){sparkle.style.left=`${containerRect.width / 2 + x}px`;sparkle.style.top=`${containerRect.height / 2 + y}px`;container.appendChild(sparkle);setTimeout(()=>{if(sparkle&&sparkle.parentNode&&sparkle.parentNode.contains&&sparkle.parentNode.contains(sparkle)){sparkle.parentNode.removeChild(sparkle);}},1000);}},i*100);}}
+showMessage(message){const messageDiv=document.createElement('div');if(!messageDiv)return;messageDiv.className='fixed top-4 left-1/2 transform -translate-x-1/2 bg-white px-6 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';messageDiv.innerHTML=`
+            <div class="flex items-center">
+                <span class="material-icons text-green-600 mr-2">check_circle</span>
+                <span class="text-gray-800">${message}</span>
+            </div>
+        `;document.body.appendChild(messageDiv);setTimeout(()=>{if(messageDiv&&messageDiv.style){messageDiv.style.opacity='0';}
+setTimeout(()=>{if(messageDiv&&document.body.contains(messageDiv)){document.body.removeChild(messageDiv);}},300);},2000);}
+createBackup(){const backup={version:'2.1.0',timestamp:new Date().toISOString(),data:{startDate:this.startDate,spendRecords:this.spendRecords,baseAmount:this.baseAmount}};return JSON.stringify(backup,null,2);}
+saveBackup(){const backup=this.createBackup();const backupKey=`pocketMoneyBackup_${new Date().toISOString().split('T')[0]}`;localStorage.setItem(backupKey,backup);this.cleanOldBackups();this.showMessage('数据已自动备份！');}
+cleanOldBackups(){const keys=Object.keys(localStorage).filter(key=>key.startsWith('pocketMoneyBackup_'));const thirtyDaysAgo=new Date();thirtyDaysAgo.setDate(thirtyDaysAgo.getDate()-30);keys.forEach(key=>{const dateStr=key.replace('pocketMoneyBackup_','');const backupDate=new Date(dateStr);if(backupDate<thirtyDaysAgo){localStorage.removeItem(key);}});}
+getBackupList(){const keys=Object.keys(localStorage).filter(key=>key.startsWith('pocketMoneyBackup_'));return keys.map(key=>{const dateStr=key.replace('pocketMoneyBackup_','');const backup=JSON.parse(localStorage.getItem(key));const isOptimized=backup.version>='2.1.0';return{key:key,date:dateStr,timestamp:backup.timestamp,spendCount:(backup.data&&backup.data.spendRecords)?backup.data.spendRecords.length:0,isOptimized:isOptimized,version:backup.version};}).sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));}
+restoreFromBackup(backupKey){try{console.log('开始恢复备份:',backupKey);const backup=JSON.parse(localStorage.getItem(backupKey));console.log('备份数据:',backup);if(!backup||!backup.data){throw new Error('备份文件格式错误');}
+this.clearAllData();console.log('已清空当前数据');this.startDate=backup.data.startDate;this.spendRecords=backup.data.spendRecords||[];if(backup.data.baseAmount){this.baseAmount=backup.data.baseAmount;}
+console.log('已恢复备份数据:',{startDate:this.startDate,spendRecords:this.spendRecords.length,baseAmount:this.baseAmount});this.saveStartDate(this.startDate);this.saveSpendRecords();console.log('已保存数据到localStorage');if(this.startDate){this.regenerateGiveRecords();console.log('已重新生成发放记录:',this.giveRecords.length);}
+this.setDefaultDates();this.updateDisplay();this.updateGiveStats();this.updateLevelDisplay();this.updateBackupList();this.showMessage('数据恢复成功！发放记录已根据消费记录重新计算');console.log('恢复完成');}catch(error){console.error('恢复数据失败:',error);this.showMessage('数据恢复失败：'+error.message);}}
+generateTextBackup(){try{const backupData={version:'2.1.0',timestamp:new Date().toISOString(),data:{startDate:this.startDate,spendRecords:this.spendRecords,baseAmount:this.baseAmount}};const backupText=JSON.stringify(backupData,null,2);const modal=document.createElement('div');if(!modal)return;modal.style.cssText=`
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.8);
+                z-index: 10000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            `;modal.innerHTML=`
+                <div style="background: white; padding: 25px; border-radius: 12px; max-width: 90%; max-height: 80%; overflow-y: auto; width: 100%;">
+                    <h2 style="margin: 0 0 15px 0; color: #333; text-align: center;">
+                        <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #007AFF;">content_copy</span>
+                        优化备份数据文本
+                    </h2>
+                    <div style="background: #E8F5E8; padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 4px solid #4CAF50;">
+                        <p style="margin: 0; color: #2E7D32; font-size: 14px;">
+                            <strong>🎯 优化备份说明：</strong><br>
+                            1. 发放记录已移除，恢复时自动重新计算<br>
+                            2. 只备份消费记录和开始日期，体积更小<br>
+                            3. 点击"复制备份"按钮将文本复制到剪贴板<br>
+                            4. 将文本保存到备忘录、微信或其他安全地方<br>
+                            5. 恢复数据时，将完整文本粘贴到恢复框中
+                        </p>
+                    </div>
+                    <textarea readonly style="width: 100%; height: 300px; font-family: 'Courier New', monospace; font-size: 11px; padding: 15px; border: 2px solid #ddd; border-radius: 8px; background: #f8f9fa; resize: vertical;">${backupText}</textarea>
+                    <div style="margin-top: 20px; text-align: center;">
+                        <button onclick="copyBackupText()" style="background: #4CAF50; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin-right: 10px; font-size: 16px;">
+                            <span class="material-icons" style="vertical-align: middle; margin-right: 5px;">content_copy</span>
+                            复制备份
+                        </button>
+                        <button onclick="this.parentElement.parentElement.parentElement.remove()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                            <span class="material-icons" style="vertical-align: middle; margin-right: 5px;">close</span>
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            `;document.body.appendChild(modal);window.copyBackupText=function(){const textarea=modal?modal.querySelector('textarea'):null;if(!textarea)return;textarea.select();textarea.setSelectionRange(0,99999);try{document.execCommand('copy');alert('✅ 优化备份数据已复制到剪贴板！\n\n发放记录将自动重新计算，请将文本保存到安全的地方。');}catch(err){if(navigator.clipboard){navigator.clipboard.writeText(backupText).then(()=>{alert('✅ 优化备份数据已复制到剪贴板！\n\n发放记录将自动重新计算，请将文本保存到安全的地方。');}).catch(()=>{alert('❌ 复制失败，请手动选择文本进行复制。');});}else{alert('❌ 复制失败，请手动选择文本进行复制。');}}};this.showMessage('优化备份数据已生成，发放记录将自动重新计算');}catch(error){console.error('生成备份失败:',error);this.showMessage('生成备份失败：'+error.message);}}
+regenerateGiveRecords(){this.generateGiveRecords({clearExisting:true,source:'restore'});}
+restoreFromText(){const restoreDataText=document.getElementById('restoreDataText');const backupText=restoreDataText.value.trim();if(!backupText){this.showMessage('请粘贴备份数据文本');return;}
+this.showRestoreConfirm(()=>{this.performRestore(backupText,restoreDataText);});}
+showRestoreConfirm(onConfirm){const modal=document.createElement('div');if(!modal)return;modal.style.cssText=`
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        `;modal.innerHTML=`
+            <div style="background: white; padding: 25px; border-radius: 12px; max-width: 90%; max-height: 80%; overflow-y: auto; width: 100%;">
+                <h2 style="margin: 0 0 15px 0; color: #333; text-align: center;">
+                    <span class="material-icons" style="vertical-align: middle; margin-right: 8px; color: #ff9800;">warning</span>
+                    确认恢复数据
+                </h2>
+                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #ffc107;">
+                    <p style="margin: 0; color: #856404; font-size: 14px; line-height: 1.5;">
+                        ⚠️ <strong>重要提醒：</strong><br>
+                        这将完全清空当前所有数据并恢复备份数据<br>
+                        发放记录将根据消费记录自动重新计算<br>
+                        建议先备份当前数据
+                    </p>
+                </div>
+                <div style="text-align: center;">
+                    <button onclick="confirmRestore()" style="background: #ff9800; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; margin-right: 10px; font-size: 16px;">
+                        <span class="material-icons" style="vertical-align: middle; margin-right: 5px;">check</span>
+                        确认恢复
+                    </button>
+                    <button onclick="cancelRestore()" style="background: #6c757d; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 16px;">
+                        <span class="material-icons" style="vertical-align: middle; margin-right: 5px;">close</span>
+                        取消
+                    </button>
+                </div>
+            </div>
+        `;document.body.appendChild(modal);window.confirmRestore=()=>{if(document.body.contains(modal)){document.body.removeChild(modal);}
+delete window.confirmRestore;delete window.cancelRestore;onConfirm();};window.cancelRestore=()=>{if(document.body.contains(modal)){document.body.removeChild(modal);}
+delete window.confirmRestore;delete window.cancelRestore;};modal.addEventListener('click',(e)=>{if(e.target===modal&&document.body.contains(modal)){window.cancelRestore();}});}
+performRestore(backupText,restoreDataText){try{const backupData=JSON.parse(backupText);if(!backupData.version||!backupData.data){throw new Error('备份数据格式不正确');}
+if(!backupData.data.spendRecords){throw new Error('备份数据缺少必要字段');}
+this.clearAllData();this.startDate=backupData.data.startDate;this.spendRecords=backupData.data.spendRecords||[];if(backupData.data.baseAmount){this.baseAmount=backupData.data.baseAmount;}
+localStorage.setItem('pocketMoneyStartDate',this.startDate);localStorage.setItem('pocketMoneySpendRecords',JSON.stringify(this.spendRecords));if(this.baseAmount!==6){localStorage.setItem('pocketMoneyBaseAmount',this.baseAmount.toString());}
+if(this.startDate){this.regenerateGiveRecords();}
+this.setDefaultDates();this.updateDisplay();this.updateGiveStats();this.updateLevelDisplay();this.updateBackupList();if(restoreDataText&&restoreDataText.value!==undefined){restoreDataText.value='';}
+this.showMessage('✅ 数据恢复成功！\n\n发放记录：'+this.giveRecords.length+' 条（根据消费记录重新计算）\n消费记录：'+this.spendRecords.length+' 条');}catch(error){console.error('恢复数据失败:',error);this.showMessage('❌ 数据恢复失败：'+error.message+'\n\n请检查备份数据是否完整且格式正确。');}}
+clearAllData(){this.startDate=null;this.giveRecords=[];this.spendRecords=[];this.currentPage=1;localStorage.removeItem('pocketMoneyStartDate');localStorage.removeItem('pocketMoneyGiveRecords');localStorage.removeItem('pocketMoneySpendRecords');localStorage.removeItem('pocketMoneyBaseAmount');this.baseAmount=6;}
+updateBackupList(){const backupList=document.getElementById('backupList');if(!backupList){console.warn('Backup list element not found');return;}
+const backups=this.getBackupList();if(backups.length===0){backupList.innerHTML=`
+                <div class="text-center text-gray-500 py-4">
+                    <span class="material-icons text-lg mb-2">backup</span>
+                    <p class="text-sm">暂无备份记录</p>
+                </div>
+            `;return;}
+backupList.innerHTML=backups.map(backup=>{const versionBadge=backup.isOptimized?'<span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded">优化版</span>':'<span class="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded">标准版</span>';return`
+                <div class="flex items-center justify-between bg-gray-50 rounded-lg p-3 hover:bg-gray-100 transition-colors">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="text-sm font-medium text-gray-800">${backup.date}</div>
+                            ${versionBadge}
+                        </div>
+                        <div class="text-xs text-gray-600">
+                            ${backup.isOptimized ? '消费记录' : '发放记录'}: ${backup.isOptimized ? backup.spendCount : '自动计算'}条
+                            ${!backup.isOptimized ? `,消费记录:${backup.spendCount}条` : ''}
+                        </div>
+                    </div>
+                    <button 
+                        onclick="window.pocketMoneyManager.restoreFromBackup('${backup.key}')"
+                        class="px-3 py-1 text-xs ${backup.isOptimized ? 'bg-green-500 hover:bg-green-600' : 'bg-blue-500 hover:bg-blue-600'} text-white rounded transition-colors"
+                        data-testid="restore-backup-${backup.date}"
+                    >
+                        恢复
+                    </button>
+                </div>
+            `;}).join('');}
+showLevelModal(){const modal=document.getElementById('levelModal');const tableBody=document.getElementById('levelTableBody');const levelData=this.getLevelTableData();tableBody.innerHTML=levelData.map(item=>{const titleClass=this.getTitleClass(item.title);return`
+                <tr>
+                    <td>
+                        <span class="level-badge">${item.range}</span>
+                    </td>
+                    <td>
+                        <span class="level-title-badge ${titleClass}">${item.title}</span>
+                    </td>
+                </tr>
+            `;}).join('');modal.classList.add('show');}
+closeLevelModal(){const modal=document.getElementById('levelModal');if(modal){modal.classList.remove('show');}}
+getLevelTableData(){return[{range:'Lv.1-4',title:'咖宝学徒'},{range:'Lv.5-9',title:'见习咖宝'},{range:'Lv.10-14',title:'极速先锋'},{range:'Lv.15-19',title:'特警卫士'},{range:'Lv.20-24',title:'重装巨人'},{range:'Lv.25-29',title:'传说召唤师'},{range:'Lv.30-34',title:'暴风统帅'},{range:'Lv.35-39',title:'晶钻领主'},{range:'Lv.40-44',title:'四变兽王'},{range:'Lv.45-49',title:'黄金战神'},{range:'Lv.50-54',title:'双星大元帅'},{range:'Lv.55-59',title:'银河霸主'},{range:'Lv.60+',title:'时空创世神'}];}
+getTitleClass(title){const classMap={'咖宝学徒':'title-apprentice','见习咖宝':'title-novice','极速先锋':'title-pioneer','特警卫士':'title-guard','重装巨人':'title-giant','传说召唤师':'title-summoner','暴风统帅':'title-commander','晶钻领主':'title-lord','四变兽王':'title-beast','黄金战神':'title-god','双星大元帅':'title-marshal','银河霸主':'title-ruler','时空创世神':'title-creator'};return classMap[title]||'title-apprentice';}}
+document.addEventListener('DOMContentLoaded',()=>{window.pocketMoneyManager=new PocketMoneyManager();});
+</script>
 
-            handleBaseAmountChange(val){ const n=parseFloat(val); if(isNaN(n)||n<1||n>100){this.showMessage('请输入1-100的金额');return;} if(n!==this.baseAmount){this.baseAmount=n; localStorage.setItem('pocketMoneyBaseAmount',n); this.updateRuleDescription(); this.showMessage(`基础底薪已更新为 ¥${n}`);} }
-            updateBaseAmountDisplay(){ document.getElementById('baseAmount').value=this.baseAmount; this.updateRuleDescription(); }
-            updateRuleDescription(){ document.getElementById('ruleFirstThreshold').textContent=this.baseAmount; document.getElementById('ruleFirstAmount').textContent=this.baseAmount; document.getElementById('ruleSecondAmount').textContent=this.baseAmount+1; document.getElementById('ruleSecondThreshold').textContent=this.baseAmount*2+1; }
-
-            generateGiveRecords({startDate=null, endDate=new Date(), clearExisting=false, source='auto'}){
-                const start = startDate || this.startDate; if(!start) return [];
-                const allPoints = []; const s = new Date(start); const e = new Date(endDate); e.setHours(23,59,59,999);
-                for(let d=new Date(s); d<=e; d.setDate(d.getDate()+1)){ if(d.getDay()===1) allPoints.push({date:d.toISOString().split('T')[0], type:'monday', time:d.getTime()}); }
-                this.spendRecords.forEach(r=>{ const d=new Date(r.date); if(d>=s && d<=e) allPoints.push({date:r.date, type:'spend', data:r, time:d.getTime()}); });
-                allPoints.sort((a,b)=>a.date===b.date ? (a.type==='spend'?-1:1) : a.time-b.time);
-                
-                let balance=0; const newR=[];
-                allPoints.forEach(p=>{
-                    if(p.type==='spend') balance -= p.data.amount;
-                    else {
-                        const amt = this.calculateGiveAmount(balance);
-                        newR.push({id:Date.now()+Math.random(), date:p.date, amount:amt, note:`${source==='manual'?'手动':'自动'}发放 - 余额¥${balance.toFixed(2)}`, autoGenerated:source!=='manual', source});
-                        balance += amt;
-                    }
-                });
-                
-                if(clearExisting) this.giveRecords=newR;
-                else if(newR.length>0) {
-                    const exist = new Set(this.giveRecords.map(x=>x.date));
-                    this.giveRecords.push(...newR.filter(x=>!exist.has(x.date)));
-                }
-                this.giveRecords.sort((a,b)=>new Date(a.date)-new Date(b.date));
-                this.saveGiveRecords(); return newR;
-            }
-
-            calculateGiveAmount(balance){
-                let sum=0; for(let i=0; i<100; i++){ sum += this.baseAmount+i; if(balance < sum) return this.baseAmount+i; }
-                return this.baseAmount+100;
-            }
-            calculateNextWeekAmount(){ return this.calculateGiveAmount(this.getCurrentBalance()); }
-            getCurrentBalance(){ return this.giveRecords.reduce((s,r)=>s+r.amount,0) - this.spendRecords.reduce((s,r)=>s+r.amount,0); }
-
-            handleGenerateRecords(){
-                const s=document.getElementById('startDate').value; if(!s){this.showMessage('请选择开始日期');return;}
-                this.saveStartDate(s);
-                const r=this.generateGiveRecords({startDate:s, clearExisting:true, source:'manual'});
-                if(r.length>0){ this.updateDisplay(); this.updateGiveStats(); this.showMessage(`生成成功！`); }
-            }
-
-            saveSpendRecord(){
-                const d=document.getElementById('spendDate').value; const a=parseFloat(document.getElementById('spendAmount').value);
-                if(!d || !a || a<=0){this.showMessage('输入有误'); return;}
-                this.spendRecords.push({id:Date.now(), date:d, amount:a, category:document.getElementById('spendCategory').value, note:document.getElementById('spendNote').value});
-                this.spendRecords.sort((x,y)=>new Date(x.date)-new Date(y.date)); this.saveSpendRecords();
-                this.giveRecords = this.giveRecords.filter(x=>new Date(x.date)<=new Date(d) || !x.autoGenerated);
-                this.generateGiveRecords({clearExisting:false});
-                this.updateDisplay(); document.getElementById('spendNote').value=''; this.showMessage('消费已记录！');
-            }
-
-            updateDisplay(){
-                document.getElementById('totalAmount').textContent=`¥${this.getCurrentBalance().toFixed(2)}`;
-                document.getElementById('totalGiven').textContent=`¥${this.giveRecords.reduce((s,r)=>s+r.amount,0).toFixed(2)}`;
-                document.getElementById('totalSpent').textContent=`¥${this.spendRecords.reduce((s,r)=>s+r.amount,0).toFixed(2)}`;
-                document.getElementById('nextWeekAmount').textContent=`¥${this.calculateNextWeekAmount().toFixed(2)}`;
-                this.updateLevelDisplay();
-            }
-
-            updateGiveStats(){
-                document.getElementById('totalGiveCount').textContent=this.giveRecords.length;
-                document.getElementById('totalGiveAmount').textContent=`¥${this.giveRecords.reduce((s,r)=>s+r.amount,0).toFixed(2)}`;
-            }
-
-            updateHistory(filter){
-                let arr = [...this.giveRecords.map(x=>({...x, t:'give', i:'💰', c:'green', l:'发放'})), ...this.spendRecords.map(x=>({...x, t:'spend', i:'🛒', c:'red', l:'消费'}))];
-                if(filter!=='all') arr=arr.filter(x=>x.t===filter);
-                arr.sort((a,b)=>new Date(b.date)-new Date(a.date));
-                const list = document.getElementById('historyList');
-                if(!arr.length) { list.innerHTML=`<div class="text-center text-gray-500 py-4">暂无记录</div>`; document.getElementById('pagination').classList.add('hidden'); return; }
-                
-                const total = Math.ceil(arr.length/this.itemsPerPage);
-                list.innerHTML = arr.slice((this.currentPage-1)*this.itemsPerPage, this.currentPage*this.itemsPerPage).map(r=>{
-                    return `<div class="bg-gray-50 rounded p-3 mb-2 shadow-sm border border-gray-100">
-                        <div class="flex justify-between font-medium"><span class="text-${r.c}-600">${r.i} ${r.l} ${r.t==='spend'?`<button onclick="window.pocketMoneyManager.showDeleteConfirm(${r.id})" class="text-xs text-red-500 ml-2">🗑️</button>`:''}</span>
-                        <span class="text-${r.c}-600">${r.t==='give'?'+':'-'}¥${r.amount.toFixed(2)}</span></div>
-                        <div class="text-xs text-gray-500 mt-1">${r.date} ${r.category||''} ${r.note?' - '+r.note:''}</div>
-                    </div>`;
-                }).join('');
-                document.getElementById('pagination').classList.remove('hidden');
-                document.getElementById('pageInfo').textContent=`${this.currentPage} / ${total}`;
-            }
-
-            updateMonthStats(){
-                const m={}; 
-                [...this.giveRecords,...this.spendRecords].forEach(r=>{
-                    const k=r.date.substring(0,7); if(!m[k]) m[k]={in:0,out:0};
-                    if(r.source!==undefined) m[k].in+=r.amount; else m[k].out+=r.amount;
-                });
-                const arr = Object.keys(m).sort().reverse();
-                document.getElementById('monthStatsList').innerHTML = arr.slice((this.monthStatsPage-1)*6, this.monthStatsPage*6).map(k=>
-                    `<div class="bg-gray-50 p-3 rounded mb-2 flex justify-between">
-                        <div><div class="font-bold">${k}</div><div class="text-xs text-green-600">入 ¥${m[k].in.toFixed(2)}</div></div>
-                        <div class="text-right"><div class="text-${m[k].in>=m[k].out?'green':'red'}-600 font-bold">${m[k].in>=m[k].out?'结余':'超支'} ¥${Math.abs(m[k].in-m[k].out).toFixed(2)}</div><div class="text-xs text-red-500">出 ¥${m[k].out.toFixed(2)}</div></div>
-                    </div>`
-                ).join('') || `<div class="text-center text-gray-500 py-4">暂无统计</div>`;
-            }
-
-            showDeleteConfirm(id){ this.pendingDeleteId=id; document.getElementById('deleteConfirmModal').classList.add('show'); }
-            closeLevelModal(){ document.getElementById('levelModal').classList.remove('show'); }
-            
-            initDeleteModal(){
-                document.getElementById('cancelDeleteBtn').onclick = ()=>{document.getElementById('deleteConfirmModal').classList.remove('show');};
-                document.getElementById('confirmDeleteBtn').onclick = ()=>{
-                    this.spendRecords = this.spendRecords.filter(x=>x.id!==this.pendingDeleteId);
-                    this.saveSpendRecords(); this.giveRecords=[]; this.generateGiveRecords({clearExisting:true});
-                    this.updateDisplay(); this.updateHistory('all'); document.getElementById('deleteConfirmModal').classList.remove('show');
-                    this.showMessage('消费记录已删除，系统已重新推演历史结余！');
-                };
-            }
-
-            getLevelName(lv){ const n=["咖宝学徒","见习咖宝","极速先锋","特警卫士","重装巨人","传说召唤师","暴风统帅","晶钻领主","四变兽王","黄金战神"]; return n[Math.min(Math.floor((lv-1)/5),9)]||"时空创世神"; }
-            updateLevelDisplay(){
-                const lv = Math.max(1, this.calculateNextWeekAmount() - this.baseAmount);
-                document.getElementById('levelCurrent').textContent=`Lv.${lv}`;
-                document.getElementById('levelText').textContent=this.getLevelName(lv);
-                
-                const box = document.getElementById('levelIcons'); box.innerHTML='';
-                let sun=Math.floor(lv/25), moon=Math.floor((lv%25)/5), star=lv%5;
-                for(let i=0;i<sun;i++) box.innerHTML+=`<span class="level-icon sun">☀️</span>`;
-                for(let i=0;i<moon;i++) box.innerHTML+=`<span class="level-icon moon">🌙</span>`;
-                for(let i=0;i<star;i++) box.innerHTML+=`<span class="level-icon star">⭐</span>`;
-            }
-
-            showLevelModal(){
-                document.getElementById('levelTableBody').innerHTML = [0,5,10,15,20,25,30,35,40,45].map(i=>
-                    `<tr class="border-b"><td class="py-2">Lv.${i+1}-${i+5}</td><td>${this.getLevelName(i+1)}</td></tr>`
-                ).join('');
-                document.getElementById('levelModal').classList.add('show');
-            }
-
-            createBackup(){ return JSON.stringify({v:1, date:new Date().toISOString(), d:{start:this.startDate, spend:this.spendRecords, base:this.baseAmount}}); }
-            saveBackup(){ const k=`backup_${new Date().toISOString().split('T')[0]}`; localStorage.setItem(k,this.createBackup()); }
-            updateBackupList(){
-                const keys = Object.keys(localStorage).filter(k=>k.startsWith('backup_')).sort().reverse();
-                document.getElementById('backupList').innerHTML = keys.map(k=>
-                    `<div class="flex justify-between bg-white p-2 rounded border border-gray-200">
-                        <span>🗄️ ${k.replace('backup_','')}</span>
-                        <button onclick="window.pocketMoneyManager.restoreBackupKey('${k}')" class="text-blue-500">恢复</button>
-                    </div>`
-                ).join('') || '暂无备份';
-            }
-
-            restoreBackupKey(k){ this.performRestore(localStorage.getItem(k)); }
-            generateTextBackup(){
-                const txt = this.createBackup();
-                navigator.clipboard.writeText(txt).then(()=>this.showMessage('备份数据已复制到剪贴板！请粘贴保存到微信或备忘录。')).catch(()=>prompt('请手动复制备份：',txt));
-            }
-            restoreFromText(){ this.performRestore(document.getElementById('restoreDataText').value); }
-            performRestore(str){
-                try{ const obj=JSON.parse(str); this.startDate=obj.d.start; this.spendRecords=obj.d.spend; this.baseAmount=obj.d.base||6;
-                     this.saveStartDate(this.startDate); this.saveSpendRecords(); localStorage.setItem('pocketMoneyBaseAmount',this.baseAmount);
-                     this.giveRecords=[]; this.generateGiveRecords({clearExisting:true});
-                     this.updateDisplay(); this.showMessage('恢复成功！数据已重算。');
-                }catch(e){ this.showMessage('恢复失败，请检查数据格式！'); }
-            }
-
-            showMessage(msg){
-                const d=document.createElement('div'); d.className='fixed top-10 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-6 py-3 rounded-full shadow-lg z-50 transition-opacity';
-                d.innerHTML=`<span class="emoji-icon">✅</span>${msg}`; document.body.appendChild(d);
-                setTimeout(()=>{d.style.opacity='0'; setTimeout(()=>d.remove(),300);},2000);
-            }
-        }
-        
-        document.addEventListener('DOMContentLoaded', ()=>{
-            window.pocketMoneyManager = new PocketMoneyManager();
-            window.pocketMoneyManager.initDeleteModal();
-        });
-    </script>
-</body>
-</html>
+</div></body></html>
