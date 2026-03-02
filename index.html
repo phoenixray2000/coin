@@ -149,6 +149,25 @@
             background: linear-gradient(135deg, #78C88C 0%, #6ab57d 100%);
             color: white;
         }
+
+        .function-tabs .tab-button {
+            font-size: 0.78rem !important;
+            padding: 0.45rem 0.35rem !important;
+            line-height: 1.15;
+            word-break: keep-all;
+        }
+
+        .function-tabs .tab-button .material-icons {
+            font-size: 0.95rem !important;
+            margin-right: 0.2rem !important;
+        }
+
+        @media (max-width: 480px) {
+            .function-tabs .tab-button {
+                font-size: 0.7rem !important;
+                padding: 0.4rem 0.25rem !important;
+            }
+        }
         
         /* 存钱罐升级动画样式 */
         .piggy-bank-level-1 { color: #78C88C !important; }
@@ -830,7 +849,7 @@ window.trace_id = "0b27541817651790133333541e02de";
         </div>
 
         <!-- 功能选项卡 -->
-        <div class="flex mb-6 bg-gray-100 rounded-lg p-1">
+        <div class="function-tabs flex mb-6 bg-gray-100 rounded-lg p-1">
             <button id="statsTab" class="tab-button active flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all" data-testid="stats-tab">
                 <span class="material-icons text-lg mr-1">bar_chart</span>
                 月度统计
